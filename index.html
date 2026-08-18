@@ -202,7 +202,20 @@ input,select{font-family:inherit;font-size:16px}
 .combo-empty{padding:10px 12px;font-size:13px;color:var(--ink-soft)}
 
 /* ============ ADMIN (desktop) ============ */
-#adm-view{max-width:1200px;margin:0 auto;padding:22px 24px 60px}
+#adm-view{max-width:1320px;margin:0 auto;padding:22px 24px 60px}
+.adm-shell{display:flex;gap:22px;align-items:flex-start}
+.adm-nav{width:200px;flex:none;position:sticky;top:82px;
+  background:var(--crema);border:1px solid var(--line);border-radius:14px;
+  padding:8px;display:flex;flex-direction:column;gap:2px;max-height:calc(100vh - 110px);
+  overflow-y:auto}
+.adm-nav button{width:100%;text-align:left;padding:10px 12px;border-radius:9px;font-size:14px;
+  font-weight:500;color:var(--ink-soft);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.adm-nav button:hover{background:var(--paper-2)}
+.adm-nav button.on{background:var(--ink);color:#fff;font-weight:600}
+.adm-nav button.usr-off{opacity:.5}
+.adm-nav .nav-count{font-family:var(--font-m);font-size:11.5px;opacity:.7}
+.adm-nav .nav-sep{height:1px;background:var(--line);margin:6px 4px}
+.adm-main{flex:1;min-width:0}
 .adm-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;margin-bottom:22px}
 .stat{background:var(--crema);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
 .stat .k{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
@@ -278,6 +291,9 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
   .adm-grid{grid-template-columns:1fr 1fr}
   #adm-view{padding:16px}
   .hide-sm{display:none}
+  .adm-shell{flex-direction:column}
+  .adm-nav{width:100%;flex-direction:row;overflow-x:auto;position:static;max-height:none}
+  .adm-nav button{width:auto;white-space:nowrap}
 }
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
@@ -346,20 +362,24 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
 
   <!-- ---- ADMIN ---- -->
   <main id="adm-view" class="hidden">
-    <div class="adm-grid" id="adm-stats"></div>
-    <div class="toolbar">
-      <select class="sel" id="adm-periodo"></select>
-      <select class="sel" id="adm-supervisor"><option value="">Todos los supervisores</option></select>
-      <select class="sel" id="adm-categoria"><option value="">Todas las categorías</option></select>
-      <div class="grow"></div>
-      <div class="seg" id="adm-vista">
-        <button data-v="detalle" class="on">Detalle</button>
-        <button data-v="resumen">Cierre por supervisor</button>
+    <div class="adm-shell">
+      <aside class="adm-nav" id="adm-nav"></aside>
+      <div class="adm-main">
+        <div class="adm-grid" id="adm-stats"></div>
+        <div class="toolbar">
+          <select class="sel" id="adm-periodo"></select>
+          <select class="sel" id="adm-categoria"><option value="">Todas las categorías</option></select>
+          <div class="grow"></div>
+          <div class="seg" id="adm-vista">
+            <button data-v="detalle" class="on">Detalle</button>
+            <button data-v="resumen">Cierre por supervisor</button>
+          </div>
+          <button class="mini" id="adm-usuarios"><span class="icon" style="width:16px;height:16px"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M15.5 3.13a4 4 0 0 1 0 7.75"/></svg></span> Usuarios</button>
+          <button class="mini ok" id="adm-export">Exportar CSV</button>
+        </div>
+        <div class="panel" id="adm-panel"></div>
       </div>
-      <button class="mini" id="adm-usuarios"><span class="icon" style="width:16px;height:16px"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M15.5 3.13a4 4 0 0 1 0 7.75"/></svg></span> Usuarios</button>
-      <button class="mini ok" id="adm-export">Exportar CSV</button>
     </div>
-    <div class="panel" id="adm-panel"></div>
   </main>
 </div>
 
@@ -1054,7 +1074,7 @@ const parseNum = v => Number(String(v).replace(/\./g,'').replace(',','.'))||0;
 /* =======================================================================
    ADMIN
    ======================================================================= */
-let admVista='detalle', admData=null;
+let admVista='detalle', admData=null, admSupervisorFiltro='', ADMIN_USUARIOS=[];
 function initAdmin(){
   $('#tb-title').textContent='Panel de administración';
   $('#adm-view').classList.remove('hidden');
@@ -1063,7 +1083,6 @@ function initAdmin(){
   fillPeriodos($('#adm-periodo')); $('#adm-periodo').value=periodoActual();
   fillCategorias2($('#adm-categoria'));
   $('#adm-periodo').onchange=loadAdmin;
-  $('#adm-supervisor').onchange=renderAdmin;
   $('#adm-categoria').onchange=renderAdmin;
   $('#adm-export').onclick=exportCSV;
   $('#adm-usuarios').onclick=openUsuarios;
@@ -1072,32 +1091,51 @@ function initAdmin(){
     document.querySelectorAll('#adm-vista button').forEach(x=>x.classList.toggle('on',x===b));
     renderAdmin();
   });
+  cargarUsuariosParaNav();
   loadAdmin();
 }
 function fillCategorias2(sel){
   sel.innerHTML='<option value="">Todas las categorías</option>';
   CATEGORIAS.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.id;sel.appendChild(o)});
 }
+async function cargarUsuariosParaNav(){
+  try{
+    const {usuarios} = await api('/api/admin/usuarios');
+    ADMIN_USUARIOS = usuarios.filter(u=>u.rol==='supervisor');
+    renderAdminNav();
+  }catch{ /* si falla, el nav queda vacío y se puede seguir usando "Todos" */ }
+}
+function renderAdminNav(){
+  const nav=$('#adm-nav');
+  const conteo = admData ? admData.gastos.reduce((acc,g)=>{ acc[g.supervisor]=(acc[g.supervisor]||0)+1; return acc; },{}) : {};
+  const totalGastos = admData ? admData.gastos.length : 0;
+  nav.innerHTML = `<button data-sup="" class="${admSupervisorFiltro===''?'on':''}">
+      <span>Todos</span><span class="nav-count">${totalGastos||''}</span></button>
+    <div class="nav-sep"></div>` +
+    ADMIN_USUARIOS.map(u=>`
+      <button data-sup="${esc(u.nombre)}" class="${admSupervisorFiltro===u.nombre?'on':''} ${u.activo?'':'usr-off'}">
+        <span>${esc(u.nombre)}</span><span class="nav-count">${conteo[u.nombre]||''}</span>
+      </button>`).join('');
+  nav.querySelectorAll('button[data-sup]').forEach(b=>b.onclick=()=>{
+    admSupervisorFiltro = b.dataset.sup;
+    nav.querySelectorAll('button[data-sup]').forEach(x=>x.classList.toggle('on', x===b));
+    renderStats(); renderAdmin();
+  });
+}
 async function loadAdmin(){
-  const p=$('#adm-periodo').value;
   $('#adm-panel').innerHTML='<div class="center-load"><div class="spin"></div>Cargando cierre…</div>';
   try{
-    admData = await api('/api/admin/gastos?periodo='+p);
-    // poblar filtro supervisores
-    const sup=[...new Set(admData.gastos.map(g=>g.supervisor))].sort();
-    const cur=$('#adm-supervisor').value;
-    $('#adm-supervisor').innerHTML='<option value="">Todos los supervisores</option>'+
-      sup.map(s=>`<option>${esc(s)}</option>`).join('');
-    $('#adm-supervisor').value=cur;
+    admData = await api('/api/admin/gastos?periodo='+$('#adm-periodo').value);
+    renderAdminNav();
     renderStats(); renderAdmin();
   }catch(ex){ $('#adm-panel').innerHTML=`<div class="empty"><div class="big">${icon('alert',40)}</div><p>${ex.message}</p></div>`; }
 }
 function filtered(){
-  const s=$('#adm-supervisor').value, c=$('#adm-categoria').value;
-  return admData.gastos.filter(g=>(!s||g.supervisor===s)&&(!c||g.categoria===c));
+  const c=$('#adm-categoria').value;
+  return admData.gastos.filter(g=>(!admSupervisorFiltro||g.supervisor===admSupervisorFiltro)&&(!c||g.categoria===c));
 }
 function renderStats(){
-  const g=admData.gastos;
+  const g=filtered();
   const total=g.reduce((a,x)=>a+x.total,0);
   const sups=new Set(g.map(x=>x.supervisor)).size;
   const locs=new Set(g.map(x=>x.local)).size;
@@ -1220,7 +1258,24 @@ function esc(s){ return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&l
    BOOT
    ======================================================================= */
 if(session?.token){ enterApp(); }
-if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').then(reg=>{
+    // Revisar si hay actualización cada vez que la app vuelve a primer plano.
+    document.addEventListener('visibilitychange', ()=>{
+      if(document.visibilityState==='visible') reg.update().catch(()=>{});
+    });
+    reg.update().catch(()=>{});
+  }).catch(()=>{});
+
+  // El sw.js nuevo se auto-activa (skipWaiting + clients.claim). Cuando eso
+  // pasa, recargamos la página UNA vez para que cargue el HTML/JS nuevo
+  // sin que el supervisor tenga que hacer nada.
+  let yaRecargo=false;
+  navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+    if(yaRecargo) return; yaRecargo=true;
+    window.location.reload();
+  });
+}
 </script>
 </body>
 </html>
