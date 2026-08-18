@@ -799,8 +799,20 @@ function applyFilter(imgData,mode){
   }
 }
 $('#scan-confirm').addEventListener('click', ()=>{
-  // orden esquinas: TL,TR,BR,BL en coords de imagen original
-  const sx=rawImg.width/C.width, sy=rawImg.height/C.height;
+  // Bajamos la resolución de trabajo ANTES de recortar: una foto de celular
+  // tiene 12+ megapíxeles y el recorte de perspectiva pixel a pixel sobre eso
+  // tarda decenas de segundos. 1600px de lado más largo alcanza de sobra para
+  // que la IA lea el ticket, y el recorte pasa a tardar menos de un segundo.
+  const MAX_LADO = 1600;
+  const escalaTrabajo = Math.min(1, MAX_LADO / Math.max(rawImg.width, rawImg.height));
+  const workW = Math.round(rawImg.width * escalaTrabajo);
+  const workH = Math.round(rawImg.height * escalaTrabajo);
+  const workCanvas = document.createElement('canvas');
+  workCanvas.width = workW; workCanvas.height = workH;
+  workCanvas.getContext('2d').drawImage(rawImg, 0, 0, workW, workH);
+
+  // orden esquinas: TL,TR,BR,BL, escaladas desde el canvas mostrado (C) al de trabajo
+  const sx=workW/C.width, sy=workH/C.height;
   const src=corners.map(c=>({x:c.x*sx,y:c.y*sy}));
   // dimensiones destino = promedio de lados
   const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -809,10 +821,8 @@ $('#scan-confirm').addEventListener('click', ()=>{
   const dst=[{x:0,y:0},{x:W,y:0},{x:W,y:H},{x:0,y:H}];
   const Hm=homography(src,dst), Hi=inv3(Hm);
 
-  // canvas fuente a resolución original
-  const sc=document.createElement('canvas'); sc.width=rawImg.width; sc.height=rawImg.height;
-  sc.getContext('2d').drawImage(rawImg,0,0);
-  const sd=sc.getContext('2d').getImageData(0,0,rawImg.width,rawImg.height).data;
+  // canvas fuente ya reducido (workCanvas), mucho más rápido de procesar
+  const sd=workCanvas.getContext('2d').getImageData(0,0,workW,workH).data;
 
   const out=document.createElement('canvas'); out.width=W; out.height=H;
   const octx=out.getContext('2d'); const odata=octx.createImageData(W,H); const od=odata.data;
@@ -820,8 +830,8 @@ $('#scan-confirm').addEventListener('click', ()=>{
     const dz=Hi[6]*x+Hi[7]*y+Hi[8];
     const ux=(Hi[0]*x+Hi[1]*y+Hi[2])/dz, uy=(Hi[3]*x+Hi[4]*y+Hi[5])/dz;
     const xi=Math.round(ux), yi=Math.round(uy), oi=(y*W+x)*4;
-    if(xi>=0&&yi>=0&&xi<rawImg.width&&yi<rawImg.height){
-      const si=(yi*rawImg.width+xi)*4;
+    if(xi>=0&&yi>=0&&xi<workW&&yi<workH){
+      const si=(yi*workW+xi)*4;
       od[oi]=sd[si]; od[oi+1]=sd[si+1]; od[oi+2]=sd[si+2]; od[oi+3]=255;
     } else { od[oi]=od[oi+1]=od[oi+2]=255; od[oi+3]=255; }
   }
