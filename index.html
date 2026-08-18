@@ -292,6 +292,12 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
   font-size:14px;font-weight:500;box-shadow:var(--shadow);opacity:0;transition:opacity .2s,transform .2s;
   pointer-events:none;max-width:88%;text-align:center}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
+#update-banner{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 12px);
+  z-index:400;background:var(--ink);color:var(--crema);padding:10px 12px 10px 18px;border-radius:999px;
+  font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(10,10,10,.35);display:flex;align-items:center;gap:12px}
+#update-banner button{background:#fff;color:var(--ink);font-weight:700;font-size:13px;
+  padding:7px 16px;border-radius:999px}
+#update-banner button:hover{filter:brightness(.92)}
 
 .spin{width:20px;height:20px;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;
   border-radius:50%;animation:sp .7s linear infinite}
@@ -499,6 +505,10 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
 </div>
 
 <div id="toast"></div>
+<div id="update-banner" class="hidden">
+  <span>Hay una versión nueva</span>
+  <button id="update-btn">Actualizar</button>
+</div>
 
 <script>
 /* =======================================================================
@@ -556,9 +566,9 @@ function periodoLabel(p){
   const meses=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   return meses[+m-1]+' '+y;
 }
-function toast(msg){
+function toast(msg, ms){
   const t=$('#toast'); t.textContent=msg; t.classList.add('show');
-  clearTimeout(t._to); t._to=setTimeout(()=>t.classList.remove('show'),2600);
+  clearTimeout(t._to); t._to=setTimeout(()=>t.classList.remove('show'), ms||2600);
 }
 async function api(path, opts={}){
   const headers = Object.assign({}, opts.headers||{});
@@ -1126,8 +1136,13 @@ $('#review-save').addEventListener('click', async ()=>{
       const fd=new FormData();
       fd.append('imagen', capturedBlob, 'comprobante.jpg');
       fd.append('datos', JSON.stringify(datos));
-      await api('/api/gastos',{method:'POST',body:fd});
-      toast('Viático cargado ✓');
+      const resp = await api('/api/gastos',{method:'POST',body:fd});
+      // Si el mail a administración falló, avisamos el motivo (sin bloquear la carga).
+      if(resp && resp.mail && resp.mail.ok===false){
+        toast('Viático cargado ✓ (aviso: no se pudo enviar el mail — '+ (resp.mail.motivo||'?') +')', 7000);
+      }else{
+        toast('Viático cargado ✓');
+      }
     }
     $('#review-bg').classList.add('hidden'); capturedBlob=null; editandoGastoId=null;
     $('#sup-periodo').value = periodoActual();
@@ -1180,7 +1195,7 @@ function initAdmin(){
   if(admPollId) clearInterval(admPollId);
   admPollId = setInterval(()=>{
     if(document.visibilityState==='visible' && session?.user?.rol==='admin') refrescarAdminSilencioso();
-  }, 12000);
+  }, 4000);
   if(admVisHandler) document.removeEventListener('visibilitychange', admVisHandler);
   admVisHandler = ()=>{
     if(document.visibilityState==='visible' && session?.user?.rol==='admin') refrescarAdminSilencioso();
@@ -1364,17 +1379,40 @@ function esc(s){ return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&l
    ======================================================================= */
 if(session?.token){ enterApp(); }
 if('serviceWorker' in navigator){
+  let swEnEspera = null;
+
+  function mostrarBannerActualizar(sw){
+    swEnEspera = sw;
+    $('#update-banner').classList.remove('hidden');
+  }
+  $('#update-btn').addEventListener('click', ()=>{
+    if(swEnEspera) swEnEspera.postMessage({type:'SKIP_WAITING'});
+    $('#update-btn').textContent = 'Actualizando…';
+  });
+
   navigator.serviceWorker.register('sw.js').then(reg=>{
-    // Revisar si hay actualización cada vez que la app vuelve a primer plano.
+    // Si ya hay una versión nueva esperando al cargar, mostramos el cartel.
+    if(reg.waiting && navigator.serviceWorker.controller) mostrarBannerActualizar(reg.waiting);
+
+    // Cuando se detecta e instala una versión nueva, mostramos el cartel.
+    reg.addEventListener('updatefound', ()=>{
+      const nuevo = reg.installing;
+      nuevo && nuevo.addEventListener('statechange', ()=>{
+        if(nuevo.state === 'installed' && navigator.serviceWorker.controller){
+          mostrarBannerActualizar(nuevo);
+        }
+      });
+    });
+
+    // Chequear si hay update al volver a primer plano y cada 60s.
     document.addEventListener('visibilitychange', ()=>{
       if(document.visibilityState==='visible') reg.update().catch(()=>{});
     });
+    setInterval(()=>reg.update().catch(()=>{}), 60000);
     reg.update().catch(()=>{});
   }).catch(()=>{});
 
-  // El sw.js nuevo se auto-activa (skipWaiting + clients.claim). Cuando eso
-  // pasa, recargamos la página UNA vez para que cargue el HTML/JS nuevo
-  // sin que el supervisor tenga que hacer nada.
+  // Cuando el SW nuevo toma control (tras tocar "Actualizar"), recargamos.
   let yaRecargo=false;
   navigator.serviceWorker.addEventListener('controllerchange', ()=>{
     if(yaRecargo) return; yaRecargo=true;

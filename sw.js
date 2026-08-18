@@ -1,10 +1,12 @@
 /* Service worker · Viáticos Lucciano's
    Recordá: subir SIEMPRE index.html + sw.js juntos y bumpear la versión. */
-const CACHE = "viaticos-v09";
+const CACHE = "viaticos-v10";
 const ASSETS = ["./", "./index.html", "./manifest.json"];
 
 self.addEventListener("install", e => {
-  self.skipWaiting();
+  // NO llamamos skipWaiting() acá: dejamos que el nuevo SW quede "en espera"
+  // y que la app le avise al usuario con un cartel "Actualizar". El usuario
+  // decide cuándo, para no cortarlo en medio de una carga.
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
 });
 
@@ -14,6 +16,11 @@ self.addEventListener("activate", e => {
       Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
+});
+
+// La app manda este mensaje cuando el usuario toca "Actualizar".
+self.addEventListener("message", e => {
+  if (e.data && e.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("fetch", e => {
