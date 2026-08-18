@@ -53,7 +53,8 @@ input,select{font-family:inherit;font-size:16px}
 #login{min-height:100dvh;display:grid;place-items:center;padding:24px;background:var(--ink)}
 .card-login{width:100%;max-width:380px;background:var(--crema);border:1px solid var(--line);
   border-radius:20px;box-shadow:var(--shadow);padding:36px 28px 30px;text-align:center}
-.login-logo{max-width:150px;max-height:60px;margin:0 auto 14px;display:block}
+.login-logo{width:88px;height:88px;border-radius:20px;margin:0 auto 16px;display:block;
+  box-shadow:0 6px 18px rgba(10,10,10,.18);object-fit:cover}
 .brand{font-family:var(--font-b);font-weight:600;font-size:13px;letter-spacing:.22em;
   text-transform:uppercase;color:var(--ink-soft)}
 .card-login h1{font-family:var(--font-d);font-weight:800;font-size:28px;line-height:1.1;
@@ -303,7 +304,7 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
 <!-- ============ LOGIN ============ -->
 <section id="login">
   <form class="card-login" id="login-form" autocomplete="on">
-    <img src="logo.png" alt="Lucciano's" class="login-logo" onerror="this.style.display='none'; document.getElementById('brand-fallback').style.display='block';">
+    <img src="icon-512.png" alt="Lucciano's" class="login-logo" onerror="this.style.display='none'; document.getElementById('brand-fallback').style.display='block';">
     <div class="brand" id="brand-fallback" style="display:none">Lucciano's · Gestión</div>
     <h1>Viáticos</h1>
     <p class="sub">Escaneá el comprobante y se imputa solo.</p>
