@@ -2,7 +2,7 @@
 <html lang="es-AR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0a0a0a">
 <title>Viáticos · Lucciano's</title>
 <link rel="manifest" href="manifest.json">
@@ -37,8 +37,13 @@ body{
   color:var(--ink);
   -webkit-font-smoothing:antialiased;
   line-height:1.45;
-  overscroll-behavior-y:none;
+  overscroll-behavior:none;
+  overflow-x:hidden;            /* nada de scroll lateral en el celular */
+  max-width:100vw;
+  touch-action:pan-y;           /* solo scroll vertical; bloquea zoom por pinch/doble-tap */
+  -webkit-text-size-adjust:100%;
 }
+html{overflow-x:hidden}
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
 input,select{font-family:inherit;font-size:16px}
 :focus-visible{outline:2.5px solid var(--accent);outline-offset:2px;border-radius:6px}
@@ -80,8 +85,11 @@ input,select{font-family:inherit;font-size:16px}
 .topbar{position:sticky;top:0;z-index:20;background:var(--ink);color:var(--crema);
   padding:calc(env(safe-area-inset-top) + 12px) 18px 12px;display:flex;
   align-items:center;justify-content:space-between;gap:12px}
-.topbar .tb-title{font-family:var(--font-d);font-weight:600;font-size:17px}
+.topbar .tb-title{font-family:var(--font-d);font-weight:700;font-size:17px}
 .topbar .tb-sub{font-size:12px;opacity:.7;font-family:var(--font-b)}
+.tb-left{display:flex;align-items:center;gap:11px;min-width:0}
+.tb-logo{width:36px;height:36px;border-radius:9px;flex:none;object-fit:cover;
+  border:1px solid rgba(255,255,255,.15)}
 .tb-user{display:flex;align-items:center;gap:10px}
 .avatar{width:34px;height:34px;border-radius:50%;background:var(--accent);
   display:grid;place-items:center;font-weight:700;font-size:14px;color:var(--ink);flex:none}
@@ -193,6 +201,9 @@ input,select{font-family:inherit;font-size:16px}
   color:var(--ink);background:#e6e6e8;padding:3px 9px;border-radius:999px}
 .sheet-actions{display:flex;gap:10px;margin-top:8px}
 .sheet-actions .btn{flex:1}
+.btn-eliminar{width:100%;margin-top:10px;padding:12px;border-radius:12px;font-weight:600;
+  font-size:14px;color:var(--bordo);background:transparent;border:1.5px solid var(--line)}
+.btn-eliminar:hover{background:#f7ecec;border-color:#e0bcbc}
 
 /* Combo buscador (local de rendición) */
 .combo{position:relative}
@@ -325,7 +336,6 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
     <img src="icon-512.png" alt="Lucciano's" class="login-logo" onerror="this.style.display='none'; document.getElementById('brand-fallback').style.display='block';">
     <div class="brand" id="brand-fallback" style="display:none">Lucciano's · Gestión</div>
     <h1>Viáticos</h1>
-    <p class="sub">Escaneá el comprobante y se imputa solo.</p>
     <div class="field">
       <label for="u">Usuario</label>
       <input id="u" name="username" autocomplete="username" required autocapitalize="none" spellcheck="false">
@@ -342,9 +352,12 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
 <!-- ============ APP ============ -->
 <div id="app" class="hidden">
   <header class="topbar">
-    <div>
-      <div class="tb-title" id="tb-title">Viáticos</div>
-      <div class="tb-sub" id="tb-sub"></div>
+    <div class="tb-left">
+      <img src="icon-512.png" alt="Lucciano's" class="tb-logo" onerror="this.style.display='none'">
+      <div>
+        <div class="tb-title" id="tb-title">Viáticos</div>
+        <div class="tb-sub" id="tb-sub"></div>
+      </div>
     </div>
     <div class="tb-user">
       <div class="avatar" id="tb-avatar">–</div>
@@ -476,6 +489,7 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
       <button class="btn btn-ghost" id="review-cancel">Descartar</button>
       <button class="btn" id="review-save">Guardar viático</button>
     </div>
+    <button class="btn-eliminar hidden" id="review-delete">Eliminar viático</button>
   </div>
 </div>
 
@@ -1077,13 +1091,26 @@ function abrirEdicionGasto(g){
   $('#r-local-id').value = g.local_id||'';
   $('#r-local-search').value = g.local||'';
   $('#review-save').disabled=false; $('#review-save').textContent='Guardar cambios';
+  $('#review-delete').classList.remove('hidden');
   $('#review-bg').classList.remove('hidden');
 }
 function resetReviewModoCreacion(){
   editandoGastoId = null;
+  $('#review-delete').classList.add('hidden');
   $('#review-title').textContent = 'Revisá los datos';
   $('#review-note').innerHTML = '<span class="ai-badge"><span class="icon" style="width:12px;height:12px"><svg viewBox="0 0 24 24"><path d="M12 2 14 9 21 12 14 15 12 22 10 15 3 12 10 9Z"/></svg></span> Leído con IA</span> &nbsp;Corregí lo que haga falta antes de guardar.';
 }
+$('#review-delete').addEventListener('click', async ()=>{
+  if(!editandoGastoId) return;
+  if(!confirm('¿Eliminar este viático? Se borra también el comprobante de Drive. No se puede deshacer.')) return;
+  const btn=$('#review-delete'); btn.disabled=true; btn.textContent='Eliminando…';
+  try{
+    await api('/api/gastos/'+editandoGastoId, {method:'DELETE'});
+    $('#review-bg').classList.add('hidden'); editandoGastoId=null;
+    toast('Viático eliminado'); loadSupGastos();
+  }catch(ex){ toast('Error: '+ex.message); }
+  finally{ btn.disabled=false; btn.textContent='Eliminar viático'; }
+});
 
 /* ---- combo buscador de local ---- */
 function setupLocalCombo(){
