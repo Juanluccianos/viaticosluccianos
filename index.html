@@ -171,8 +171,11 @@ input,select{font-family:inherit;font-size:16px}
 /* ============ FORM REVISIÓN (sheet) ============ */
 .sheet-bg{position:fixed;inset:0;z-index:110;background:rgba(10,10,10,.55);
   display:flex;align-items:flex-end;justify-content:center}
+.sheet-bg.centrado{align-items:center;padding:20px}
 .sheet{width:100%;max-width:520px;max-height:92dvh;overflow-y:auto;background:var(--paper);
   border-radius:22px 22px 0 0;padding:8px 20px calc(env(safe-area-inset-bottom) + 20px)}
+.sheet-bg.centrado .sheet{border-radius:20px;max-height:88vh}
+.sheet-bg.centrado .sheet-grab{display:none}
 .sheet-grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:8px auto 4px}
 .sheet h2{font-family:var(--font-d);font-weight:600;font-size:21px;margin:8px 2px 2px}
 .sheet .review-note{font-size:13px;color:var(--ink-soft);margin-bottom:14px}
@@ -252,9 +255,18 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
 .mini.on-ok{background:var(--accent);color:#fff;border-color:var(--accent)}
 .mini.on-no{background:var(--bordo);color:#fff;border-color:var(--bordo)}
 .subtable-supervisor{font-weight:600}
-.lightbox{position:fixed;inset:0;z-index:200;background:rgba(10,10,10,.85);
-  display:grid;place-items:center;padding:30px}
-.lightbox img{max-width:90%;max-height:90%;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.pill-editado{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;
+  background:#f4ecd9;color:var(--ambar);padding:1px 7px;border-radius:999px}
+.lightbox{position:fixed;inset:0;z-index:200;background:rgba(10,10,10,.9);
+  overflow:auto;padding:60px 20px 30px;text-align:center}
+.lightbox img{max-width:min(92vw,900px);width:100%;height:auto;border-radius:10px;
+  box-shadow:0 20px 60px rgba(0,0,0,.5);display:block;margin:0 auto}
+.lightbox-close{position:fixed;top:16px;right:18px;width:40px;height:40px;border-radius:50%;
+  background:rgba(255,255,255,.12);color:#fff;font-size:18px;z-index:2}
+.lightbox-close:hover{background:rgba(255,255,255,.2)}
+.lightbox-drive{position:fixed;top:20px;left:20px;color:#fff;font-size:13px;font-weight:600;
+  background:rgba(255,255,255,.12);padding:8px 14px;border-radius:999px;text-decoration:none;z-index:2}
+.lightbox-drive:hover{background:rgba(255,255,255,.2)}
 
 /* ABM usuarios */
 .usr-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line)}
@@ -420,8 +432,8 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
 <div class="sheet-bg hidden" id="review-bg">
   <div class="sheet" id="review-sheet">
     <div class="sheet-grab"></div>
-    <h2>Revisá los datos</h2>
-    <p class="review-note"><span class="ai-badge"><span class="icon" style="width:12px;height:12px"><svg viewBox="0 0 24 24"><path d="M12 2 14 9 21 12 14 15 12 22 10 15 3 12 10 9Z"/></svg></span> Leído con IA</span> &nbsp;Corregí lo que haga falta antes de guardar.</p>
+    <h2 id="review-title">Revisá los datos</h2>
+    <p class="review-note" id="review-note"><span class="ai-badge"><span class="icon" style="width:12px;height:12px"><svg viewBox="0 0 24 24"><path d="M12 2 14 9 21 12 14 15 12 22 10 15 3 12 10 9Z"/></svg></span> Leído con IA</span> &nbsp;Corregí lo que haga falta antes de guardar.</p>
     <img class="review-img" id="review-img" alt="Comprobante escaneado">
     <div class="review-field">
       <label>Razón social</label>
@@ -461,10 +473,14 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
   </div>
 </div>
 
-<div class="lightbox hidden" id="lightbox"><img id="lightbox-img" alt=""></div>
+<div class="lightbox hidden" id="lightbox">
+  <button class="lightbox-close" id="lightbox-close" aria-label="Cerrar">✕</button>
+  <a class="lightbox-drive" id="lightbox-drive" href="#" target="_blank" rel="noopener">Abrir en Google Drive</a>
+  <img id="lightbox-img" alt="">
+</div>
 
 <!-- Sheet ABM usuarios -->
-<div class="sheet-bg hidden" id="usr-bg">
+<div class="sheet-bg centrado hidden" id="usr-bg">
   <div class="sheet" id="usr-sheet" style="max-width:640px">
     <div class="sheet-grab"></div>
     <h2>Supervisores</h2>
@@ -655,16 +671,22 @@ function renderSupList(gastos){
     return;
   }
   list.innerHTML = gastos.map(g=>`
-    <div class="gasto">
+    <div class="gasto" data-id="${g.id}" style="cursor:pointer">
       <div class="cat-ic">${catIcon(g.categoria)}</div>
       <div class="g-main">
         <div class="g-raz">${esc(g.razon_social||'(sin razón social)')}</div>
-        <div class="g-meta"><span>${g.fecha_rendicion||'—'}</span><span>·</span><span>${esc(g.local||'—')}</span><span>·</span><span>${g.categoria}</span></div>
+        <div class="g-meta"><span>${g.fecha_rendicion||'—'}</span><span>·</span><span>${esc(g.local||'—')}</span><span>·</span><span>${g.categoria}</span>${g.editado_en?'<span>·</span><span>Editado</span>':''}</div>
       </div>
       <div class="g-amt">
         <div class="v">${fmtMoney(g.total)}</div>
       </div>
     </div>`).join('');
+  list.querySelectorAll('.gasto[data-id]').forEach(el=>{
+    el.onclick = ()=>{
+      const g = gastos.find(x=>String(x.id)===el.dataset.id);
+      if(g) abrirEdicionGasto(g);
+    };
+  });
 }
 $('#fab-scan').addEventListener('click', openScanner);
 
@@ -996,7 +1018,10 @@ function blobToB64(blob){
 /* =======================================================================
    REVIEW SHEET
    ======================================================================= */
+let editandoGastoId = null; // null = creando uno nuevo; si tiene valor, estamos editando
+
 function openReview(loading){
+  resetReviewModoCreacion();
   fillCategorias($('#r-categoria'));
   $('#review-bg').classList.remove('hidden');
   if(loading){
@@ -1021,6 +1046,33 @@ function fillReview(d){
   $('#r-iva').value   = numToEs(d.iva);
   $('#r-total').value = numToEs(d.total);
   $('#review-save').disabled=false; $('#review-save').textContent='Guardar viático';
+}
+
+/* Abrir un gasto ya guardado para editarlo (toca desde la lista del supervisor) */
+function abrirEdicionGasto(g){
+  editandoGastoId = g.id;
+  fillCategorias($('#r-categoria'));
+  $('#review-title').textContent = 'Editar viático';
+  $('#review-note').innerHTML = 'Corregí lo que haga falta. Va a quedar registrado que lo editaste.';
+  $('#review-img').src = imgUrl(g.imagen_key);
+  $('#r-razon').value = g.razon_social||'';
+  $('#r-fecha').value = g.fecha||'';
+  $('#r-fecha-rendicion').value = g.fecha_rendicion||'';
+  $('#r-cuit').value = g.cuit||'';
+  $('#r-tipo').value = g.tipo_comprobante||'B';
+  $('#r-categoria').value = (CATEGORIAS.find(c=>c.id===g.categoria)? g.categoria : 'Otros');
+  $('#r-neto').value = numToEs(g.neto);
+  $('#r-iva').value  = numToEs(g.iva);
+  $('#r-total').value = numToEs(g.total);
+  $('#r-local-id').value = g.local_id||'';
+  $('#r-local-search').value = g.local||'';
+  $('#review-save').disabled=false; $('#review-save').textContent='Guardar cambios';
+  $('#review-bg').classList.remove('hidden');
+}
+function resetReviewModoCreacion(){
+  editandoGastoId = null;
+  $('#review-title').textContent = 'Revisá los datos';
+  $('#review-note').innerHTML = '<span class="ai-badge"><span class="icon" style="width:12px;height:12px"><svg viewBox="0 0 24 24"><path d="M12 2 14 9 21 12 14 15 12 22 10 15 3 12 10 9Z"/></svg></span> Leído con IA</span> &nbsp;Corregí lo que haga falta antes de guardar.';
 }
 
 /* ---- combo buscador de local ---- */
@@ -1049,31 +1101,38 @@ function setupLocalCombo(){
 }
 setupLocalCombo();
 
-$('#review-cancel').addEventListener('click', ()=>{ $('#review-bg').classList.add('hidden'); capturedBlob=null; });
+$('#review-cancel').addEventListener('click', ()=>{ $('#review-bg').classList.add('hidden'); capturedBlob=null; editandoGastoId=null; });
 $('#review-save').addEventListener('click', async ()=>{
   if(!$('#r-local-id').value){ toast('Elegí el local donde se rinde el gasto'); return; }
   if(!$('#r-fecha-rendicion').value){ toast('Falta la fecha de rendición'); return; }
   const btn=$('#review-save'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>Guardando…';
+  const datos = {
+    razon_social:$('#r-razon').value.trim(),
+    fecha:$('#r-fecha').value,
+    fecha_rendicion:$('#r-fecha-rendicion').value,
+    local_id:$('#r-local-id').value,
+    cuit:$('#r-cuit').value.trim(),
+    tipo_comprobante:$('#r-tipo').value,
+    categoria:$('#r-categoria').value,
+    neto:parseNum($('#r-neto').value),
+    iva:parseNum($('#r-iva').value),
+    total:parseNum($('#r-total').value),
+  };
   try{
-    const fd=new FormData();
-    fd.append('imagen', capturedBlob, 'comprobante.jpg');
-    fd.append('datos', JSON.stringify({
-      razon_social:$('#r-razon').value.trim(),
-      fecha:$('#r-fecha').value,
-      fecha_rendicion:$('#r-fecha-rendicion').value,
-      local_id:$('#r-local-id').value,
-      cuit:$('#r-cuit').value.trim(),
-      tipo_comprobante:$('#r-tipo').value,
-      categoria:$('#r-categoria').value,
-      neto:parseNum($('#r-neto').value),
-      iva:parseNum($('#r-iva').value),
-      total:parseNum($('#r-total').value),
-    }));
-    await api('/api/gastos',{method:'POST',body:fd});
-    $('#review-bg').classList.add('hidden'); capturedBlob=null;
+    if(editandoGastoId){
+      await api('/api/gastos/'+editandoGastoId, {method:'PATCH', body:datos});
+      toast('Cambios guardados ✓');
+    }else{
+      const fd=new FormData();
+      fd.append('imagen', capturedBlob, 'comprobante.jpg');
+      fd.append('datos', JSON.stringify(datos));
+      await api('/api/gastos',{method:'POST',body:fd});
+      toast('Viático cargado ✓');
+    }
+    $('#review-bg').classList.add('hidden'); capturedBlob=null; editandoGastoId=null;
     $('#sup-periodo').value = periodoActual();
-    toast('Viático cargado ✓'); loadSupGastos();
-  }catch(ex){ toast('Error: '+ex.message); btn.disabled=false; btn.textContent='Guardar viático'; }
+    loadSupGastos();
+  }catch(ex){ toast('Error: '+ex.message); btn.disabled=false; btn.textContent=editandoGastoId?'Guardar cambios':'Guardar viático'; }
 });
 function parseNum(v){
   let s = String(v??'').trim();
@@ -1196,16 +1255,16 @@ function renderDetalle(){
     <th></th><th>Supervisor</th><th>Local</th><th class="hide-sm">Fecha rendición</th><th>Razón social</th>
     <th>Categoría</th><th class="hide-sm">Tipo</th><th style="text-align:right">Total</th></tr></thead><tbody>${
     g.map(x=>`<tr>
-      <td><img class="thumb" src="${imgUrl(x.imagen_key)}" data-full="${imgUrl(x.imagen_key)}" alt="ver"></td>
+      <td><img class="thumb" src="${imgUrl(x.imagen_key)}" data-full="${imgUrl(x.imagen_key)}" data-fileid="${x.imagen_key}" alt="ver"></td>
       <td class="subtable-supervisor">${esc(x.supervisor)}</td>
       <td>${esc(x.local||'—')}</td>
-      <td class="hide-sm">${x.fecha_rendicion||'—'}</td>
+      <td class="hide-sm">${x.fecha_rendicion||'—'}${x.editado_en?' <span class="pill-editado">editado</span>':''}</td>
       <td>${esc(x.razon_social||'—')}<div style="font-size:11px;color:var(--ink-soft)" class="mono">${x.cuit||''}</div></td>
       <td><span class="tag-cat">${catIcon(x.categoria)} ${x.categoria}</span></td>
       <td class="hide-sm">${x.tipo_comprobante||'—'}</td>
       <td class="num">${fmtMoney(x.total)}</td>
     </tr>`).join('')}</tbody></table>`;
-  $('#adm-panel').querySelectorAll('.thumb').forEach(t=>t.onclick=()=>openLightbox(t.dataset.full));
+  $('#adm-panel').querySelectorAll('.thumb').forEach(t=>t.onclick=()=>openLightbox(t.dataset.full, t.dataset.fileid));
 }
 function renderResumen(){
   const g=filtered();
@@ -1241,8 +1300,13 @@ function exportCSV(){
   a.download=`viaticos_${$('#adm-periodo').value}.csv`; a.click();
 }
 function imgUrl(key){ return API_BASE+'/api/imagen/'+encodeURIComponent(key)+'?t='+(session?.token||''); }
-function openLightbox(url){ $('#lightbox-img').src=url; $('#lightbox').classList.remove('hidden'); }
-$('#lightbox').addEventListener('click',()=>$('#lightbox').classList.add('hidden'));
+function openLightbox(url, fileId){
+  $('#lightbox-img').src=url;
+  $('#lightbox-drive').href = fileId ? `https://drive.google.com/file/d/${fileId}/view` : '#';
+  $('#lightbox').classList.remove('hidden');
+}
+$('#lightbox-close').addEventListener('click', ()=>$('#lightbox').classList.add('hidden'));
+$('#lightbox').addEventListener('click', e=>{ if(e.target.id==='lightbox') $('#lightbox').classList.add('hidden'); });
 
 /* =======================================================================
    ABM DE USUARIOS
