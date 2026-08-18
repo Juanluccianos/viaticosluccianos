@@ -58,8 +58,7 @@ input,select{font-family:inherit;font-size:16px}
 #login{min-height:100dvh;display:grid;place-items:center;padding:24px;background:var(--ink)}
 .card-login{width:100%;max-width:380px;background:var(--crema);border:1px solid var(--line);
   border-radius:20px;box-shadow:var(--shadow);padding:36px 28px 30px;text-align:center}
-.login-logo{width:88px;height:88px;border-radius:20px;margin:0 auto 16px;display:block;
-  box-shadow:0 6px 18px rgba(10,10,10,.18);object-fit:cover}
+.login-logo{width:180px;max-width:70%;height:auto;margin:0 auto 18px;display:block;object-fit:contain}
 .brand{font-family:var(--font-b);font-weight:600;font-size:13px;letter-spacing:.22em;
   text-transform:uppercase;color:var(--ink-soft)}
 .card-login h1{font-family:var(--font-d);font-weight:800;font-size:28px;line-height:1.1;
@@ -88,8 +87,7 @@ input,select{font-family:inherit;font-size:16px}
 .topbar .tb-title{font-family:var(--font-d);font-weight:700;font-size:17px}
 .topbar .tb-sub{font-size:12px;opacity:.7;font-family:var(--font-b)}
 .tb-left{display:flex;align-items:center;gap:11px;min-width:0}
-.tb-logo{width:36px;height:36px;border-radius:9px;flex:none;object-fit:cover;
-  border:1px solid rgba(255,255,255,.15)}
+.tb-logo{height:26px;width:auto;flex:none;object-fit:contain}
 .tb-user{display:flex;align-items:center;gap:10px}
 .avatar{width:34px;height:34px;border-radius:50%;background:var(--accent);
   display:grid;place-items:center;font-weight:700;font-size:14px;color:var(--ink);flex:none}
@@ -333,7 +331,7 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
 <!-- ============ LOGIN ============ -->
 <section id="login">
   <form class="card-login" id="login-form" autocomplete="on">
-    <img src="icon-512.png" alt="Lucciano's" class="login-logo" onerror="this.style.display='none'; document.getElementById('brand-fallback').style.display='block';">
+    <img src="logo-negro.png" alt="Lucciano's" class="login-logo" onerror="this.style.display='none'; document.getElementById('brand-fallback').style.display='block';">
     <div class="brand" id="brand-fallback" style="display:none">Lucciano's · Gestión</div>
     <h1>Viáticos</h1>
     <div class="field">
@@ -353,7 +351,7 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
 <div id="app" class="hidden">
   <header class="topbar">
     <div class="tb-left">
-      <img src="icon-512.png" alt="Lucciano's" class="tb-logo" onerror="this.style.display='none'">
+      <img src="logo-blanco.png" alt="Lucciano's" class="tb-logo" onerror="this.style.display='none'">
       <div>
         <div class="tb-title" id="tb-title">Viáticos</div>
         <div class="tb-sub" id="tb-sub"></div>
@@ -1105,9 +1103,14 @@ $('#review-delete').addEventListener('click', async ()=>{
   if(!confirm('¿Eliminar este viático? Se borra también el comprobante de Drive. No se puede deshacer.')) return;
   const btn=$('#review-delete'); btn.disabled=true; btn.textContent='Eliminando…';
   try{
-    await api('/api/gastos/'+editandoGastoId, {method:'DELETE'});
+    const resp = await api('/api/gastos/'+editandoGastoId, {method:'DELETE'});
     $('#review-bg').classList.add('hidden'); editandoGastoId=null;
-    toast('Viático eliminado'); loadSupGastos();
+    if(resp && resp.drive && resp.drive.ok===false){
+      toast('Viático eliminado (el comprobante en Drive no se borró: '+(resp.drive.motivo||'?')+')', 7000);
+    }else{
+      toast('Viático eliminado');
+    }
+    loadSupGastos();
   }catch(ex){ toast('Error: '+ex.message); }
   finally{ btn.disabled=false; btn.textContent='Eliminar viático'; }
 });
