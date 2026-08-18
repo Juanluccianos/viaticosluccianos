@@ -1005,15 +1005,19 @@ function openReview(loading){
     $('#review-save').disabled=true; $('#review-save').innerHTML='<span class="spin"></span>Leyendo…';
   }
 }
+function numToEs(n){
+  if(n===undefined||n===null||n==='') return '';
+  return Number(n).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
 function fillReview(d){
   $('#r-razon').value = d.razon_social||'';
   $('#r-fecha').value = d.fecha||new Date().toISOString().slice(0,10);
   $('#r-cuit').value  = d.cuit||'';
   $('#r-tipo').value  = d.tipo_comprobante||'B';
   $('#r-categoria').value = (CATEGORIAS.find(c=>c.id===d.categoria)? d.categoria : 'Otros');
-  $('#r-neto').value  = d.neto??'';
-  $('#r-iva').value   = d.iva??'';
-  $('#r-total').value = d.total??'';
+  $('#r-neto').value  = numToEs(d.neto);
+  $('#r-iva').value   = numToEs(d.iva);
+  $('#r-total').value = numToEs(d.total);
   $('#review-save').disabled=false; $('#review-save').textContent='Guardar viático';
 }
 
@@ -1069,7 +1073,22 @@ $('#review-save').addEventListener('click', async ()=>{
     toast('Viático cargado ✓'); loadSupGastos();
   }catch(ex){ toast('Error: '+ex.message); btn.disabled=false; btn.textContent='Guardar viático'; }
 });
-const parseNum = v => Number(String(v).replace(/\./g,'').replace(',','.'))||0;
+function parseNum(v){
+  let s = String(v??'').trim();
+  if(!s) return 0;
+  const tieneComa = s.includes(',');
+  const puntos = (s.match(/\./g)||[]).length;
+  if(tieneComa){
+    // formato AR: punto = miles, coma = decimal
+    s = s.replace(/\./g,'').replace(',', '.');
+  } else if(puntos > 1){
+    // varios puntos sin coma: son separadores de miles
+    s = s.replace(/\./g,'');
+  }
+  // un solo punto sin coma se deja tal cual (ya es el separador decimal)
+  const n = Number(s);
+  return isNaN(n) ? 0 : n;
+}
 
 /* =======================================================================
    ADMIN
