@@ -188,6 +188,17 @@ input,select{font-family:inherit;font-size:16px}
 .sheet-actions{display:flex;gap:10px;margin-top:8px}
 .sheet-actions .btn{flex:1}
 
+/* Combo buscador (local de rendición) */
+.combo{position:relative}
+.combo input{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;
+  background:var(--crema);color:var(--ink)}
+.combo-list{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--crema);
+  border:1.5px solid var(--line);border-radius:10px;max-height:180px;overflow-y:auto;z-index:5;
+  box-shadow:var(--shadow)}
+.combo-item{padding:10px 12px;font-size:14px;cursor:pointer}
+.combo-item:hover,.combo-item.hi{background:var(--paper-2)}
+.combo-empty{padding:10px 12px;font-size:13px;color:var(--ink-soft)}
+
 /* ============ ADMIN (desktop) ============ */
 #adm-view{max-width:1200px;margin:0 auto;padding:22px 24px 60px}
 .adm-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;margin-bottom:22px}
@@ -228,6 +239,24 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
 .lightbox{position:fixed;inset:0;z-index:200;background:rgba(12,23,18,.85);
   display:grid;place-items:center;padding:30px}
 .lightbox img{max-width:90%;max-height:90%;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+
+/* ABM usuarios */
+.usr-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.usr-row:last-child{border-bottom:none}
+.usr-av{width:36px;height:36px;border-radius:50%;background:var(--paper-2);display:grid;
+  place-items:center;font-weight:700;font-size:13px;flex:none}
+.usr-main{flex:1;min-width:0}
+.usr-name{font-weight:600;font-size:14.5px}
+.usr-meta{font-size:12.5px;color:var(--ink-soft)}
+.usr-off{opacity:.5}
+.pill-inactivo{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+  background:#f3e0e0;color:var(--bordo);padding:2px 8px;border-radius:999px;margin-left:6px}
+.usr-form{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px;background:var(--paper-2);
+  border-radius:12px;margin-bottom:16px}
+.usr-form .full{grid-column:1/-1}
+.usr-form label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:4px}
+.usr-form input,.usr-form select{width:100%;padding:9px 11px;border:1.5px solid var(--line);
+  border-radius:9px;background:var(--crema)}
 
 /* toast */
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:100px;z-index:300;
@@ -324,6 +353,7 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
         <button data-v="detalle" class="on">Detalle</button>
         <button data-v="resumen">Cierre por supervisor</button>
       </div>
+      <button class="mini" id="adm-usuarios">👤 Usuarios</button>
       <button class="mini ok" id="adm-export">Exportar CSV</button>
     </div>
     <div class="panel" id="adm-panel"></div>
@@ -374,7 +404,7 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
       <input id="r-razon">
     </div>
     <div class="row2">
-      <div class="review-field"><label>Fecha</label><input id="r-fecha" type="date"></div>
+      <div class="review-field"><label>Fecha del ticket</label><input id="r-fecha" type="date"></div>
       <div class="review-field"><label>CUIT</label><input id="r-cuit" inputmode="numeric"></div>
     </div>
     <div class="row2">
@@ -388,6 +418,18 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
       <div class="review-field"><label>IVA</label><input id="r-iva" inputmode="decimal"></div>
     </div>
     <div class="review-field"><label>Total</label><input id="r-total" inputmode="decimal" style="font-weight:600"></div>
+    <div class="review-field">
+      <label>Local donde se rinde</label>
+      <div class="combo" id="local-combo">
+        <input id="r-local-search" placeholder="Buscar local…" autocomplete="off">
+        <input type="hidden" id="r-local-id">
+        <div class="combo-list hidden" id="local-list"></div>
+      </div>
+    </div>
+    <div class="review-field">
+      <label>Fecha de rendición</label>
+      <input id="r-fecha-rendicion" type="date">
+    </div>
     <div class="sheet-actions">
       <button class="btn btn-ghost" id="review-cancel">Descartar</button>
       <button class="btn" id="review-save">Guardar viático</button>
@@ -396,6 +438,26 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
 </div>
 
 <div class="lightbox hidden" id="lightbox"><img id="lightbox-img" alt=""></div>
+
+<!-- Sheet ABM usuarios -->
+<div class="sheet-bg hidden" id="usr-bg">
+  <div class="sheet" id="usr-sheet" style="max-width:640px">
+    <div class="sheet-grab"></div>
+    <h2>Supervisores</h2>
+    <p class="review-note">Alta y baja de usuarios que pueden cargar viáticos.</p>
+
+    <div class="usr-form">
+      <div><label>Nombre y apellido</label><input id="nu-nombre" placeholder="Pedro Gómez"></div>
+      <div><label>Usuario</label><input id="nu-usuario" placeholder="pgomez" autocapitalize="none"></div>
+      <div><label>Contraseña</label><input id="nu-password" type="text" placeholder="clave inicial"></div>
+      <div><label>Local habitual (opcional)</label><select id="nu-local"><option value="">—</option></select></div>
+      <div class="full"><button class="btn" id="nu-crear" style="width:auto;padding:10px 18px">+ Agregar supervisor</button></div>
+    </div>
+
+    <div class="panel" id="usr-list"></div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -422,6 +484,7 @@ const catIcon = id => (CATEGORIAS.find(c=>c.id===id)||{ic:'🧾'}).ic;
 let session = JSON.parse(localStorage.getItem('viaticos_session') || 'null');
 let capturedBlob = null;   // imagen procesada lista para subir
 let extracted = null;      // datos devueltos por IA
+let LOCALES = [];          // catálogo de locales, se carga al entrar
 
 /* ---- helpers ---- */
 const $ = s => document.querySelector(s);
@@ -500,8 +563,14 @@ function enterApp(){
   const u=session.user;
   $('#tb-avatar').textContent = (u.nombre||'?').trim()[0].toUpperCase();
   $('#tb-sub').textContent = u.rol==='admin' ? 'Administración' : (u.local||'Supervisor');
-  if(u.rol==='admin'){ initAdmin(); }
-  else { initSupervisor(); }
+  loadLocales().then(()=>{
+    if(u.rol==='admin'){ initAdmin(); }
+    else { initSupervisor(); }
+  });
+}
+async function loadLocales(){
+  try{ const {locales} = await api('/api/locales'); LOCALES = locales; }
+  catch{ LOCALES = []; }
 }
 
 /* =======================================================================
@@ -543,11 +612,10 @@ function renderSupList(gastos){
       <div class="cat-ic">${catIcon(g.categoria)}</div>
       <div class="g-main">
         <div class="g-raz">${esc(g.razon_social||'(sin razón social)')}</div>
-        <div class="g-meta"><span>${g.fecha||'—'}</span><span>·</span><span>${g.categoria}</span></div>
+        <div class="g-meta"><span>${g.fecha_rendicion||'—'}</span><span>·</span><span>${esc(g.local||'—')}</span><span>·</span><span>${g.categoria}</span></div>
       </div>
       <div class="g-amt">
         <div class="v">${fmtMoney(g.total)}</div>
-        <span class="estado e-${g.estado}">${g.estado}</span>
       </div>
     </div>`).join('');
 }
@@ -795,6 +863,8 @@ function openReview(loading){
   if(loading){
     ['r-razon','r-cuit','r-neto','r-iva','r-total'].forEach(id=>$('#'+id).value='');
     $('#r-fecha').value=new Date().toISOString().slice(0,10);
+    $('#r-fecha-rendicion').value=new Date().toISOString().slice(0,10);
+    $('#r-local-search').value=''; $('#r-local-id').value='';
     $('#review-save').disabled=true; $('#review-save').innerHTML='<span class="spin"></span>Leyendo…';
   }
 }
@@ -809,8 +879,37 @@ function fillReview(d){
   $('#r-total').value = d.total??'';
   $('#review-save').disabled=false; $('#review-save').textContent='Guardar viático';
 }
+
+/* ---- combo buscador de local ---- */
+function setupLocalCombo(){
+  const input=$('#r-local-search'), hidden=$('#r-local-id'), list=$('#local-list');
+  function render(filtro){
+    const f=(filtro||'').toLowerCase();
+    const items = LOCALES.filter(l=>l.nombre.toLowerCase().includes(f));
+    if(!items.length){ list.innerHTML='<div class="combo-empty">Sin resultados</div>'; }
+    else{
+      list.innerHTML = items.map(l=>`<div class="combo-item" data-id="${l.id}">${esc(l.nombre)}</div>`).join('');
+      list.querySelectorAll('.combo-item').forEach(it=>{
+        it.addEventListener('mousedown', e=>{ // mousedown para que dispare antes del blur
+          e.preventDefault();
+          hidden.value = it.dataset.id;
+          input.value = it.textContent;
+          list.classList.add('hidden');
+        });
+      });
+    }
+    list.classList.remove('hidden');
+  }
+  input.addEventListener('focus', ()=>render(input.value));
+  input.addEventListener('input', ()=>{ hidden.value=''; render(input.value); });
+  input.addEventListener('blur', ()=>setTimeout(()=>list.classList.add('hidden'),120));
+}
+setupLocalCombo();
+
 $('#review-cancel').addEventListener('click', ()=>{ $('#review-bg').classList.add('hidden'); capturedBlob=null; });
 $('#review-save').addEventListener('click', async ()=>{
+  if(!$('#r-local-id').value){ toast('Elegí el local donde se rinde el gasto'); return; }
+  if(!$('#r-fecha-rendicion').value){ toast('Falta la fecha de rendición'); return; }
   const btn=$('#review-save'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>Guardando…';
   try{
     const fd=new FormData();
@@ -818,6 +917,8 @@ $('#review-save').addEventListener('click', async ()=>{
     fd.append('datos', JSON.stringify({
       razon_social:$('#r-razon').value.trim(),
       fecha:$('#r-fecha').value,
+      fecha_rendicion:$('#r-fecha-rendicion').value,
+      local_id:$('#r-local-id').value,
       cuit:$('#r-cuit').value.trim(),
       tipo_comprobante:$('#r-tipo').value,
       categoria:$('#r-categoria').value,
@@ -848,6 +949,7 @@ function initAdmin(){
   $('#adm-supervisor').onchange=renderAdmin;
   $('#adm-categoria').onchange=renderAdmin;
   $('#adm-export').onclick=exportCSV;
+  $('#adm-usuarios').onclick=openUsuarios;
   document.querySelectorAll('#adm-vista button').forEach(b=>b.onclick=()=>{
     admVista=b.dataset.v;
     document.querySelectorAll('#adm-vista button').forEach(x=>x.classList.toggle('on',x===b));
@@ -880,14 +982,13 @@ function filtered(){
 function renderStats(){
   const g=admData.gastos;
   const total=g.reduce((a,x)=>a+x.total,0);
-  const aprob=g.filter(x=>x.estado==='aprobado').reduce((a,x)=>a+x.total,0);
-  const pend=g.filter(x=>x.estado==='pendiente').length;
   const sups=new Set(g.map(x=>x.supervisor)).size;
+  const locs=new Set(g.map(x=>x.local)).size;
   $('#adm-stats').innerHTML=`
     <div class="stat accent"><div class="k">Total del período</div><div class="v">${fmtMoney(total)}</div></div>
-    <div class="stat"><div class="k">Aprobado</div><div class="v">${fmtMoney(aprob)}</div></div>
-    <div class="stat"><div class="k">Pendientes</div><div class="v">${pend}</div></div>
-    <div class="stat"><div class="k">Supervisores</div><div class="v">${sups}</div></div>`;
+    <div class="stat"><div class="k">Comprobantes</div><div class="v">${g.length}</div></div>
+    <div class="stat"><div class="k">Supervisores</div><div class="v">${sups}</div></div>
+    <div class="stat"><div class="k">Locales</div><div class="v">${locs}</div></div>`;
 }
 function renderAdmin(){
   admVista==='detalle' ? renderDetalle() : renderResumen();
@@ -896,66 +997,47 @@ function renderDetalle(){
   const g=filtered();
   if(!g.length){ $('#adm-panel').innerHTML='<div class="empty"><div class="big">🗂️</div><p>No hay gastos con estos filtros.</p></div>'; return; }
   $('#adm-panel').innerHTML=`<table><thead><tr>
-    <th></th><th>Supervisor</th><th class="hide-sm">Fecha</th><th>Razón social</th>
-    <th>Categoría</th><th class="hide-sm">Tipo</th><th style="text-align:right">Total</th>
-    <th>Estado</th><th>Acciones</th></tr></thead><tbody>${
+    <th></th><th>Supervisor</th><th>Local</th><th class="hide-sm">Fecha rendición</th><th>Razón social</th>
+    <th>Categoría</th><th class="hide-sm">Tipo</th><th style="text-align:right">Total</th></tr></thead><tbody>${
     g.map(x=>`<tr>
       <td><img class="thumb" src="${imgUrl(x.imagen_key)}" data-full="${imgUrl(x.imagen_key)}" alt="ver"></td>
       <td class="subtable-supervisor">${esc(x.supervisor)}</td>
-      <td class="hide-sm">${x.fecha||'—'}</td>
+      <td>${esc(x.local||'—')}</td>
+      <td class="hide-sm">${x.fecha_rendicion||'—'}</td>
       <td>${esc(x.razon_social||'—')}<div style="font-size:11px;color:var(--ink-soft)" class="mono">${x.cuit||''}</div></td>
       <td><span class="tag-cat">${catIcon(x.categoria)} ${x.categoria}</span></td>
       <td class="hide-sm">${x.tipo_comprobante||'—'}</td>
       <td class="num">${fmtMoney(x.total)}</td>
-      <td><span class="estado e-${x.estado}">${x.estado}</span></td>
-      <td><div class="act-row">
-        <button class="mini ok ${x.estado==='aprobado'?'on-ok':''}" data-id="${x.id}" data-e="aprobado">✓</button>
-        <button class="mini no ${x.estado==='rechazado'?'on-no':''}" data-id="${x.id}" data-e="rechazado">✕</button>
-      </div></td>
     </tr>`).join('')}</tbody></table>`;
-  // handlers
   $('#adm-panel').querySelectorAll('.thumb').forEach(t=>t.onclick=()=>openLightbox(t.dataset.full));
-  $('#adm-panel').querySelectorAll('.mini[data-e]').forEach(b=>b.onclick=()=>setEstado(b.dataset.id,b.dataset.e));
 }
 function renderResumen(){
   const g=filtered();
   const bySup={};
   g.forEach(x=>{
-    bySup[x.supervisor]=bySup[x.supervisor]||{total:0,aprob:0,n:0,pend:0};
+    bySup[x.supervisor]=bySup[x.supervisor]||{total:0,n:0};
     const s=bySup[x.supervisor]; s.total+=x.total; s.n++;
-    if(x.estado==='aprobado') s.aprob+=x.total;
-    if(x.estado==='pendiente') s.pend++;
   });
   const rows=Object.entries(bySup).sort((a,b)=>b[1].total-a[1].total);
   if(!rows.length){ $('#adm-panel').innerHTML='<div class="empty"><div class="big">📊</div><p>Sin datos.</p></div>'; return; }
   const totGen=rows.reduce((a,[,s])=>a+s.total,0);
   $('#adm-panel').innerHTML=`<table><thead><tr>
     <th>Supervisor</th><th style="text-align:right">Comprobantes</th>
-    <th style="text-align:right">Pendientes</th><th style="text-align:right">Aprobado</th>
     <th style="text-align:right">Total a liquidar</th></tr></thead><tbody>${
     rows.map(([sup,s])=>`<tr>
       <td class="subtable-supervisor">${esc(sup)}</td>
       <td class="num">${s.n}</td>
-      <td class="num">${s.pend||'—'}</td>
-      <td class="num">${fmtMoney(s.aprob)}</td>
       <td class="num">${fmtMoney(s.total)}</td></tr>`).join('')}
     </tbody><tfoot><tr style="font-weight:700;background:var(--paper-2)">
       <td style="padding:13px 16px">Total cierre ${periodoLabel($('#adm-periodo').value)}</td>
-      <td></td><td></td><td></td>
+      <td></td>
       <td class="num" style="padding:13px 16px">${fmtMoney(totGen)}</td></tr></tfoot></table>`;
-}
-async function setEstado(id,estado){
-  try{
-    await api('/api/admin/gastos/'+id,{method:'PATCH',body:{estado}});
-    const g=admData.gastos.find(x=>x.id==id); if(g) g.estado=estado;
-    renderStats(); renderAdmin(); toast('Estado actualizado');
-  }catch(ex){ toast('Error: '+ex.message); }
 }
 function exportCSV(){
   const g=filtered();
-  const head=['Supervisor','Local','Fecha','CUIT','Razon social','Tipo','Categoria','Neto','IVA','Total','Estado'];
-  const rows=g.map(x=>[x.supervisor,x.local||'',x.fecha||'',x.cuit||'',x.razon_social||'',
-    x.tipo_comprobante||'',x.categoria,x.neto||0,x.iva||0,x.total||0,x.estado]);
+  const head=['Supervisor','Local','Fecha rendición','CUIT','Razon social','Tipo','Categoria','Neto','IVA','Total'];
+  const rows=g.map(x=>[x.supervisor,x.local||'',x.fecha_rendicion||'',x.cuit||'',x.razon_social||'',
+    x.tipo_comprobante||'',x.categoria,x.neto||0,x.iva||0,x.total||0]);
   const csv=[head,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(';')).join('\n');
   const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');
@@ -965,6 +1047,54 @@ function exportCSV(){
 function imgUrl(key){ return API_BASE+'/api/imagen/'+encodeURIComponent(key)+'?t='+(session?.token||''); }
 function openLightbox(url){ $('#lightbox-img').src=url; $('#lightbox').classList.remove('hidden'); }
 $('#lightbox').addEventListener('click',()=>$('#lightbox').classList.add('hidden'));
+
+/* =======================================================================
+   ABM DE USUARIOS
+   ======================================================================= */
+function fillLocalesSelect(sel){
+  sel.innerHTML='<option value="">—</option>'+LOCALES.map(l=>`<option value="${l.id}">${esc(l.nombre)}</option>`).join('');
+}
+async function openUsuarios(){
+  fillLocalesSelect($('#nu-local'));
+  $('#usr-bg').classList.remove('hidden');
+  await loadUsuarios();
+}
+$('#usr-bg').addEventListener('click', e=>{ if(e.target.id==='usr-bg') $('#usr-bg').classList.add('hidden'); });
+
+async function loadUsuarios(){
+  const box=$('#usr-list');
+  box.innerHTML='<div class="center-load"><div class="spin"></div>Cargando…</div>';
+  try{
+    const {usuarios} = await api('/api/admin/usuarios');
+    box.innerHTML = usuarios.map(u=>`
+      <div class="usr-row ${u.activo?'':'usr-off'}">
+        <div class="usr-av">${(u.nombre||'?')[0].toUpperCase()}</div>
+        <div class="usr-main">
+          <div class="usr-name">${esc(u.nombre)} ${u.activo?'':'<span class="pill-inactivo">Inactivo</span>'}</div>
+          <div class="usr-meta">@${esc(u.usuario)} · ${u.rol}${u.local? ' · '+esc(u.local):''}</div>
+        </div>
+        ${u.rol!=='admin' ? `<button class="mini ${u.activo?'no':'ok'}" data-id="${u.id}" data-activo="${u.activo?0:1}">${u.activo?'Desactivar':'Activar'}</button>` : ''}
+      </div>`).join('') || '<div class="empty" style="padding:24px"><p>Sin usuarios todavía.</p></div>';
+    box.querySelectorAll('button[data-id]').forEach(b=>b.onclick=async ()=>{
+      try{
+        await api('/api/admin/usuarios/'+b.dataset.id, {method:'PATCH', body:{activo: b.dataset.activo==='1'}});
+        toast('Usuario actualizado'); loadUsuarios();
+      }catch(ex){ toast('Error: '+ex.message); }
+    });
+  }catch(ex){ box.innerHTML=`<div class="empty"><p>${ex.message}</p></div>`; }
+}
+$('#nu-crear').addEventListener('click', async ()=>{
+  const nombre=$('#nu-nombre').value.trim(), usuario=$('#nu-usuario').value.trim(),
+        password=$('#nu-password').value, local_id=$('#nu-local').value;
+  if(!nombre||!usuario||!password){ toast('Completá nombre, usuario y contraseña'); return; }
+  const btn=$('#nu-crear'); btn.disabled=true;
+  try{
+    await api('/api/admin/usuarios',{method:'POST',body:{nombre,usuario,password,local_id: local_id||null}});
+    $('#nu-nombre').value=''; $('#nu-usuario').value=''; $('#nu-password').value=''; $('#nu-local').value='';
+    toast('Supervisor agregado ✓'); loadUsuarios();
+  }catch(ex){ toast('Error: '+ex.message); }
+  finally{ btn.disabled=false; }
+});
 
 /* util */
 function esc(s){ return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
