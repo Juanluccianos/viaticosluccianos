@@ -80,7 +80,7 @@ input,select{font-family:inherit;font-size:16px}
   padding:calc(env(safe-area-inset-top) + 12px) 18px 12px;display:flex;
   align-items:center;justify-content:space-between;gap:12px}
 .topbar .tb-title{font-family:var(--font-d);font-weight:600;font-size:17px}
-.topbar .tb-sub{font-size:12px;opacity:.7;font-family:var(--font-m)}
+.topbar .tb-sub{font-size:12px;opacity:.7;font-family:var(--font-b)}
 .tb-user{display:flex;align-items:center;gap:10px}
 .avatar{width:34px;height:34px;border-radius:50%;background:var(--accent);
   display:grid;place-items:center;font-weight:700;font-size:14px;color:var(--ink);flex:none}
@@ -596,6 +596,7 @@ $('#login-form').addEventListener('submit', async e=>{
 });
 function doLogout(){
   if(typeof stopCamera === 'function') stopCamera();
+  if(admPollId){ clearInterval(admPollId); admPollId=null; }
   session=null; localStorage.removeItem('viaticos_session');
   $('#app').classList.add('hidden'); $('#login').classList.remove('hidden');
   $('#p').value='';
@@ -1094,6 +1095,7 @@ function parseNum(v){
    ADMIN
    ======================================================================= */
 let admVista='detalle', admData=null, admSupervisorFiltro='', ADMIN_USUARIOS=[];
+let admPollId=null, admVisHandler=null;
 function initAdmin(){
   $('#tb-title').textContent='Panel de administración';
   $('#adm-view').classList.remove('hidden');
@@ -1112,6 +1114,25 @@ function initAdmin(){
   });
   cargarUsuariosParaNav();
   loadAdmin();
+
+  // Refresco automático: los gastos que cargan los supervisores aparecen
+  // solos, sin que el admin tenga que recargar la página.
+  if(admPollId) clearInterval(admPollId);
+  admPollId = setInterval(()=>{
+    if(document.visibilityState==='visible' && session?.user?.rol==='admin') refrescarAdminSilencioso();
+  }, 12000);
+  if(admVisHandler) document.removeEventListener('visibilitychange', admVisHandler);
+  admVisHandler = ()=>{
+    if(document.visibilityState==='visible' && session?.user?.rol==='admin') refrescarAdminSilencioso();
+  };
+  document.addEventListener('visibilitychange', admVisHandler);
+}
+async function refrescarAdminSilencioso(){
+  try{
+    const nuevo = await api('/api/admin/gastos?periodo='+$('#adm-periodo').value);
+    admData = nuevo;
+    renderAdminNav(); renderStats(); renderAdmin();
+  }catch{ /* si falla un refresco silencioso, no molestamos con un error visible */ }
 }
 function fillCategorias2(sel){
   sel.innerHTML='<option value="">Todas las categorías</option>';
