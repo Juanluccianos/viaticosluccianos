@@ -89,6 +89,8 @@ input,select{font-family:inherit;font-size:16px}
 .tb-left{display:flex;align-items:center;gap:11px;min-width:0}
 .tb-logo{height:42px;width:auto;flex:none;object-fit:contain}
 .tb-user{display:flex;align-items:center;gap:10px}
+.tb-username{font-family:var(--font-b);font-size:13px;font-weight:600;color:var(--crema);
+  max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.9}
 .avatar{width:34px;height:34px;border-radius:50%;background:var(--accent);
   display:grid;place-items:center;font-weight:700;font-size:14px;color:var(--ink);flex:none}
 .icon-btn{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;
@@ -358,6 +360,7 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
       </div>
     </div>
     <div class="tb-user">
+      <span class="tb-username" id="tb-username"></span>
       <div class="avatar" id="tb-avatar">–</div>
       <button class="icon-btn" id="logout-btn" title="Salir" aria-label="Salir">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
@@ -647,6 +650,7 @@ function enterApp(){
   $('#app').classList.remove('hidden');
   const u=session.user;
   $('#tb-avatar').textContent = (u.nombre||'?').trim()[0].toUpperCase();
+  $('#tb-username').textContent = u.nombre || '';
   $('#tb-sub').textContent = u.rol==='admin' ? 'Administración' : (u.local||'Supervisor');
   loadLocales().then(()=>{
     if(u.rol==='admin'){ initAdmin(); }
@@ -721,13 +725,25 @@ let stream=null, rawImg=null, corners=null, filterMode='gris';
 async function openScanner(){
   $('#scanner').classList.remove('hidden');
   showCaptureMode();
-  if(stream){ // ya teníamos permiso de esta sesión: reusamos la cámara, no se vuelve a pedir
-    V.srcObject=stream; V.classList.remove('hidden'); C.classList.add('hidden');
+  // Reusamos la cámara SOLO si el track sigue vivo. iOS a veces mata el track
+  // cuando el scanner queda oculto; en ese caso el readyState pasa a 'ended' y
+  // hay que volver a pedirla (si no, se ve la cámara congelada/negra).
+  const track = stream && stream.getVideoTracks()[0];
+  if(track && track.readyState==='live'){
+    V.srcObject=stream; V.classList.remove('hidden'); V.style.opacity=''; C.classList.add('hidden');
     return;
   }
   try{
-    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});
-    V.srcObject=stream; V.classList.remove('hidden'); C.classList.add('hidden');
+    stream = await navigator.mediaDevices.getUserMedia({
+      video:{
+        facingMode:{ideal:'environment'},
+        // Pedimos la mayor resolución posible: el preview del <video> por defecto
+        // viene en baja (~720p) y de ahí sale la foto borrosa. Con 'ideal' el navegador
+        // baja solo hasta lo que la cámara soporte, nunca falla por pedir de más.
+        width:{ideal:3840}, height:{ideal:2160}
+      }
+    });
+    V.srcObject=stream; V.classList.remove('hidden'); V.style.opacity=''; C.classList.add('hidden');
   }catch(ex){
     // sin cámara: caer directo a selección de archivo
     $('#scan-hint').textContent='No pude abrir la cámara. Usá "Galería".';
@@ -748,7 +764,7 @@ function showCaptureMode(){
   $('#scan-guide').classList.remove('hidden');
   $('#scan-title').textContent='Encuadrá el comprobante';
   $('#scan-hint').classList.remove('hidden');
-  V.classList.remove('hidden'); C.classList.add('hidden');
+  V.classList.remove('hidden'); V.style.opacity=''; C.classList.add('hidden');
   clearAllHandles();
 }
 $('#scan-cancel').addEventListener('click', closeScanner);
@@ -763,7 +779,7 @@ $('#scan-shutter').addEventListener('click', ()=>{
   const cv=document.createElement('canvas');
   cv.width=V.videoWidth; cv.height=V.videoHeight;
   cv.getContext('2d').drawImage(V,0,0);
-  const img=new Image(); img.onload=()=>enterAdjust(img); img.src=cv.toDataURL('image/jpeg',.92);
+  const img=new Image(); img.onload=()=>enterAdjust(img); img.src=cv.toDataURL('image/jpeg',.96);
 });
 
 /* ---- detección automática del ticket ----
@@ -806,7 +822,9 @@ function autoDetectDocumento(ctx, w, h){
 /* ---- modo ajuste: dibuja imagen en canvas + handles de esquina y de lado ---- */
 function enterAdjust(img){
   rawImg=img;
-  V.classList.add('hidden');
+  // No usamos display:none en el video: en iOS eso suelta la cámara y obliga a
+  // volver a pedir permiso. Lo dejamos corriendo detrás, solo invisible.
+  V.style.opacity='0';
   $('#scan-guide').classList.add('hidden');
   $('#scan-hint').classList.add('hidden');
   $('#scan-bar-capture').classList.add('hidden');
@@ -976,7 +994,7 @@ $('#scan-confirm').addEventListener('click', ()=>{
   // tiene 12+ megapíxeles y el recorte de perspectiva pixel a pixel sobre eso
   // tarda decenas de segundos. 1600px de lado más largo alcanza de sobra para
   // que la IA lea el ticket, y el recorte pasa a tardar menos de un segundo.
-  const MAX_LADO = 1600;
+  const MAX_LADO = 2200;
   const escalaTrabajo = Math.min(1, MAX_LADO / Math.max(rawImg.width, rawImg.height));
   const workW = Math.round(rawImg.width * escalaTrabajo);
   const workH = Math.round(rawImg.height * escalaTrabajo);
@@ -999,13 +1017,22 @@ $('#scan-confirm').addEventListener('click', ()=>{
 
   const out=document.createElement('canvas'); out.width=W; out.height=H;
   const octx=out.getContext('2d'); const odata=octx.createImageData(W,H); const od=odata.data;
+  // Muestreo BILINEAL: en vez de copiar el píxel más cercano (que pixela y
+  // ensucia las letras), promediamos los 4 vecinos según la posición exacta.
+  // Los bordes de los caracteres quedan suaves y Gemini lee bastante mejor.
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const dz=Hi[6]*x+Hi[7]*y+Hi[8];
     const ux=(Hi[0]*x+Hi[1]*y+Hi[2])/dz, uy=(Hi[3]*x+Hi[4]*y+Hi[5])/dz;
-    const xi=Math.round(ux), yi=Math.round(uy), oi=(y*W+x)*4;
-    if(xi>=0&&yi>=0&&xi<workW&&yi<workH){
-      const si=(yi*workW+xi)*4;
-      od[oi]=sd[si]; od[oi+1]=sd[si+1]; od[oi+2]=sd[si+2]; od[oi+3]=255;
+    const oi=(y*W+x)*4;
+    if(ux>=0&&uy>=0&&ux<workW-1&&uy<workH-1){
+      const x0=ux|0, y0=uy|0, fx=ux-x0, fy=uy-y0;
+      const i00=(y0*workW+x0)*4, i10=i00+4, i01=i00+workW*4, i11=i01+4;
+      for(let c=0;c<3;c++){
+        const top=sd[i00+c]*(1-fx)+sd[i10+c]*fx;
+        const bot=sd[i01+c]*(1-fx)+sd[i11+c]*fx;
+        od[oi+c]=(top*(1-fy)+bot*fy)+0.5|0;
+      }
+      od[oi+3]=255;
     } else { od[oi]=od[oi+1]=od[oi+2]=255; od[oi+3]=255; }
   }
   applyFilter(odata,filterMode);
@@ -1016,7 +1043,7 @@ $('#scan-confirm').addEventListener('click', ()=>{
     $('#review-img').src=url;
     closeScanner();
     await runOCR(blob);
-  },'image/jpeg',.9);
+  },'image/jpeg',.94);
 });
 
 /* ---- IA: mandar al worker, que llama a Gemini ---- */
