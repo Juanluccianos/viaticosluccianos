@@ -268,6 +268,13 @@ input,select{font-family:inherit;font-size:16px}
 .stat.accent{background:var(--ink);color:var(--crema)}
 .stat.accent .k{color:rgba(255,255,255,.65)}
 .toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px}
+.toolbar2{margin-top:-6px}
+.toolbar2 .num-filter{max-width:120px;flex:none}
+.th-sort{cursor:pointer;user-select:none;white-space:nowrap}
+.th-sort:hover{color:var(--ink)}
+.th-sort .tharrow{opacity:.35;font-size:10px;margin-left:2px}
+.th-sort.active .tharrow{opacity:1}
+th.num{text-align:right}
 .toolbar .sel{padding:9px 12px;border:1.5px solid var(--line);border-radius:10px;
   background:var(--crema);font-weight:500}
 .toolbar .grow{flex:1}
@@ -453,6 +460,13 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
           </div>
           <button class="mini" id="adm-usuarios"><span class="icon" style="width:16px;height:16px"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M15.5 3.13a4 4 0 0 1 0 7.75"/></svg></span> Usuarios</button>
           <button class="mini ok" id="adm-export">Exportar Excel</button>
+        </div>
+        <div class="toolbar toolbar2" id="adm-filtros2">
+          <input class="sel" id="adm-buscar" placeholder="Buscar por razón social o CUIT…" autocomplete="off" style="min-width:220px;flex:1">
+          <select class="sel" id="adm-local"><option value="">Todos los locales</option></select>
+          <input class="sel num-filter" id="adm-min" inputmode="decimal" placeholder="Total mín.">
+          <input class="sel num-filter" id="adm-max" inputmode="decimal" placeholder="Total máx.">
+          <button class="mini" id="adm-limpiar">Limpiar</button>
         </div>
         <div class="panel" id="adm-panel"></div>
       </div>
@@ -1272,6 +1286,7 @@ function parseNum(v){
    ADMIN
    ======================================================================= */
 let admVista='detalle', admData=null, admSupervisorFiltro='', ADMIN_USUARIOS=[];
+let admSort={col:'fecha_rendicion', dir:'desc'};   // orden por defecto: más recientes primero
 let admPollId=null, admVisHandler=null;
 function initAdmin(){
   $('#tb-title').textContent='Viáticos';
@@ -1281,7 +1296,16 @@ function initAdmin(){
   fillPeriodos($('#adm-periodo')); $('#adm-periodo').value=periodoActual();
   fillCategorias2($('#adm-categoria'));
   $('#adm-periodo').onchange=loadAdmin;
-  $('#adm-categoria').onchange=renderAdmin;
+  $('#adm-categoria').onchange=refrescarVista;
+  $('#adm-buscar').oninput=refrescarVista;
+  $('#adm-local').onchange=refrescarVista;
+  $('#adm-min').oninput=refrescarVista;
+  $('#adm-max').oninput=refrescarVista;
+  $('#adm-limpiar').onclick=()=>{
+    $('#adm-buscar').value=''; $('#adm-local').value=''; $('#adm-min').value=''; $('#adm-max').value='';
+    $('#adm-categoria').value='';
+    refrescarVista();
+  };
   $('#adm-export').onclick=exportExcel;
   $('#adm-usuarios').onclick=openUsuarios;
   document.querySelectorAll('#adm-vista button').forEach(b=>b.onclick=()=>{
@@ -1308,6 +1332,7 @@ async function refrescarAdminSilencioso(){
   try{
     const nuevo = await api('/api/admin/gastos?periodo='+$('#adm-periodo').value);
     admData = nuevo;
+    poblarFiltroLocales();
     renderAdminNav(); renderStats(); renderAdmin();
   }catch{ /* si falla un refresco silencioso, no molestamos con un error visible */ }
 }
@@ -1343,14 +1368,54 @@ async function loadAdmin(){
   $('#adm-panel').innerHTML='<div class="center-load"><div class="spin"></div>Cargando cierre…</div>';
   try{
     admData = await api('/api/admin/gastos?periodo='+$('#adm-periodo').value);
+    poblarFiltroLocales();
     renderAdminNav();
     renderStats(); renderAdmin();
   }catch(ex){ $('#adm-panel').innerHTML=`<div class="empty"><div class="big">${icon('alert',40)}</div><p>${ex.message}</p></div>`; }
 }
+/* Llena el desplegable de locales con los que aparecen en el período, conservando la selección. */
+function poblarFiltroLocales(){
+  const sel=$('#adm-local'); if(!sel||!admData) return;
+  const prev=sel.value;
+  const locs=[...new Set(admData.gastos.map(g=>g.local).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  sel.innerHTML='<option value="">Todos los locales</option>'+locs.map(l=>`<option value="${esc(l)}">${esc(l)}</option>`).join('');
+  if(locs.includes(prev)) sel.value=prev;
+}
 function filtered(){
   const c=$('#adm-categoria').value;
-  return admData.gastos.filter(g=>(!admSupervisorFiltro||g.supervisor===admSupervisorFiltro)&&(!c||g.categoria===c));
+  const q=($('#adm-buscar')?.value||'').trim().toLowerCase();
+  const loc=$('#adm-local')?.value||'';
+  const minTxt=($('#adm-min')?.value||'').trim(), maxTxt=($('#adm-max')?.value||'').trim();
+  const min=parseNum(minTxt), max=parseNum(maxTxt);
+  return admData.gastos.filter(g=>{
+    if(admSupervisorFiltro && g.supervisor!==admSupervisorFiltro) return false;
+    if(c && g.categoria!==c) return false;
+    if(loc && (g.local||'')!==loc) return false;
+    if(q && !(((g.razon_social||'')+' '+(g.cuit||'')).toLowerCase().includes(q))) return false;
+    if(minTxt!=='' && (g.total||0) < min) return false;
+    if(maxTxt!=='' && (g.total||0) > max) return false;
+    return true;
+  });
 }
+/* Ordena según la columna elegida (admSort). Texto: alfabético; fecha y total: numérico. */
+function sortGastos(arr){
+  const {col,dir}=admSort, s=dir==='asc'?1:-1;
+  const val=g=>{
+    switch(col){
+      case 'total': return g.total||0;
+      case 'fecha_rendicion': return g.fecha_rendicion||'';
+      case 'supervisor': return (g.supervisor||'').toLowerCase();
+      case 'local': return (g.local||'').toLowerCase();
+      case 'razon_social': return (g.razon_social||'').toLowerCase();
+      case 'categoria': return (g.categoria||'').toLowerCase();
+      case 'tipo_comprobante': return (g.tipo_comprobante||'').toLowerCase();
+      default: return '';
+    }
+  };
+  return [...arr].sort((a,b)=>{ const va=val(a), vb=val(b); return va<vb?-s:va>vb?s:0; });
+}
+/* Refresca stats + tabla al cambiar cualquier filtro. */
+function refrescarVista(){ if(!admData) return; renderStats(); renderAdmin(); }
 function renderStats(){
   const g=filtered();
   const total=g.reduce((a,x)=>a+x.total,0);
@@ -1365,12 +1430,17 @@ function renderStats(){
 function renderAdmin(){
   admVista==='detalle' ? renderDetalle() : renderResumen();
 }
+function thSort(col,label,cls=''){
+  const active=admSort.col===col;
+  const arrow=active?(admSort.dir==='asc'?'▲':'▼'):'↕';
+  return `<th class="th-sort ${active?'active':''} ${cls}" data-col="${col}">${label} <span class="tharrow">${arrow}</span></th>`;
+}
 function renderDetalle(){
-  const g=filtered();
+  $('#adm-filtros2').style.display='';
+  const g=sortGastos(filtered());
   if(!g.length){ $('#adm-panel').innerHTML='<div class="empty"><div class="big">'+icon('folder',40)+'</div><p>No hay gastos con estos filtros.</p></div>'; return; }
   $('#adm-panel').innerHTML=`<table><thead><tr>
-    <th></th><th>Supervisor</th><th>Local</th><th class="hide-sm">Fecha rendición</th><th>Razón social</th>
-    <th>Categoría</th><th class="hide-sm">Tipo</th><th style="text-align:right">Total</th></tr></thead><tbody>${
+    <th></th>${thSort('supervisor','Supervisor')}${thSort('local','Local')}${thSort('fecha_rendicion','Fecha rendición','hide-sm')}${thSort('razon_social','Razón social')}${thSort('categoria','Categoría')}${thSort('tipo_comprobante','Tipo','hide-sm')}${thSort('total','Total','num')}</tr></thead><tbody>${
     g.map(x=>`<tr>
       <td><img class="thumb" src="${imgUrl(x.imagen_key)}" data-full="${imgUrl(x.imagen_key)}" data-fileid="${x.imagen_key}" alt="ver"></td>
       <td class="subtable-supervisor">${esc(x.supervisor)}</td>
@@ -1382,8 +1452,15 @@ function renderDetalle(){
       <td class="num">${fmtMoney(x.total)}</td>
     </tr>`).join('')}</tbody></table>`;
   $('#adm-panel').querySelectorAll('.thumb').forEach(t=>t.onclick=()=>openLightbox(t.dataset.full, t.dataset.fileid));
+  $('#adm-panel').querySelectorAll('.th-sort').forEach(t=>t.onclick=()=>{
+    const col=t.dataset.col;
+    if(admSort.col===col) admSort.dir = admSort.dir==='asc'?'desc':'asc';
+    else admSort={col, dir: col==='total'||col==='fecha_rendicion' ? 'desc' : 'asc'};
+    renderDetalle();
+  });
 }
 function renderResumen(){
+  $('#adm-filtros2').style.display='none';
   const g=filtered();
   const bySup={};
   g.forEach(x=>{
