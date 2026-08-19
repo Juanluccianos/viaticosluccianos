@@ -569,6 +569,7 @@ const ICON_PATHS = {
   alert:   '<path d="M12 2 1 21h22Z"/><path d="M12 9v5"/><circle cx="12" cy="17" r="0.9" fill="currentColor" stroke="none"/>',
   users:   '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M15.5 3.13a4 4 0 0 1 0 7.75"/>',
   sparkle: '<path d="M12 2 14 9 21 12 14 15 12 22 10 15 3 12 10 9Z"/>',
+  doc:     '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6"/><path d="M9 13h6M9 17h4"/>',
 };
 function icon(name, sizePx){
   const s = sizePx || 18;
@@ -1308,15 +1309,18 @@ function renderResumen(){
   const totGen=rows.reduce((a,[,s])=>a+s.total,0);
   $('#adm-panel').innerHTML=`<table><thead><tr>
     <th>Supervisor</th><th style="text-align:right">Comprobantes</th>
-    <th style="text-align:right">Total a liquidar</th></tr></thead><tbody>${
+    <th style="text-align:right">Total a liquidar</th><th></th></tr></thead><tbody>${
     rows.map(([sup,s])=>`<tr>
       <td class="subtable-supervisor">${esc(sup)}</td>
       <td class="num">${s.n}</td>
-      <td class="num">${fmtMoney(s.total)}</td></tr>`).join('')}
+      <td class="num">${fmtMoney(s.total)}</td>
+      <td style="text-align:right"><button class="mini pdf-btn" data-sup="${esc(sup)}">${icon('doc',15)} PDF</button></td></tr>`).join('')}
     </tbody><tfoot><tr style="font-weight:700;background:var(--paper-2)">
       <td style="padding:13px 16px">Total cierre ${periodoLabel($('#adm-periodo').value)}</td>
       <td></td>
-      <td class="num" style="padding:13px 16px">${fmtMoney(totGen)}</td></tr></tfoot></table>`;
+      <td class="num" style="padding:13px 16px">${fmtMoney(totGen)}</td>
+      <td></td></tr></tfoot></table>`;
+  $('#adm-panel').querySelectorAll('.pdf-btn').forEach(b=>b.onclick=()=>generarPDFSupervisor(b.dataset.sup));
 }
 function exportCSV(){
   const g=filtered();
@@ -1330,6 +1334,97 @@ function exportCSV(){
   a.download=`viaticos_${$('#adm-periodo').value}.csv`; a.click();
 }
 function imgUrl(key){ return API_BASE+'/api/imagen/'+encodeURIComponent(key)+'?t='+(session?.token||''); }
+
+/* =======================================================================
+   REPORTE PDF · Cierre por supervisor (diseño "Marca Lucciano's")
+   Se dibuja a mano con jsPDF (cargado del CDN la primera vez que se usa).
+   Incluye SIEMPRE todas las categorías del supervisor en el período, sin
+   importar el filtro de categoría de la pantalla: es el cierre completo.
+   ======================================================================= */
+let _jspdf=null;
+function ensureJsPDF(){
+  if(window.jspdf&&window.jspdf.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
+  if(_jspdf) return _jspdf;
+  _jspdf=new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload=()=>res(window.jspdf.jsPDF);
+    s.onerror=()=>{ _jspdf=null; rej(new Error('no pude cargar el generador (revisá la conexión)')); };
+    document.head.appendChild(s);
+  });
+  return _jspdf;
+}
+function cargarImg(src){
+  return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; });
+}
+function fechaCorta(iso){ if(!iso) return '—'; const p=String(iso).split('-'); return p[2]?`${p[2]}/${p[1]}`:iso; }
+
+async function generarPDFSupervisor(sup){
+  const btnTxt='Generando…';
+  try{
+    const jsPDF = await ensureJsPDF();
+    const periodo = $('#adm-periodo').value;
+    const gs = admData.gastos.filter(x=>x.supervisor===sup);
+    if(!gs.length){ toast('Ese supervisor no tiene gastos en el período.'); return; }
+    // agrupar por categoría, respetando el orden del catálogo
+    const grupos = CATEGORIAS.map(c=>({cat:c, facs:gs.filter(x=>x.categoria===c)})).filter(g=>g.facs.length);
+    const totalGen = gs.reduce((a,x)=>a+x.total,0);
+    const logo = await cargarImg('./logo-blanco.png').catch(()=>null);
+
+    const doc = new jsPDF({unit:'pt', format:'a4'});
+    const W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight(), M=36;
+    const INK=[15,15,17], BORDO=[122,42,54], SOFT=[246,246,247], GREY=[120,120,126], LGREY=[175,175,180];
+
+    function header(){
+      doc.setFillColor(...INK); doc.rect(0,0,W,110,'F');
+      if(logo){ const lh=34, lw=lh*(logo.width/logo.height); doc.addImage(logo,'PNG',M,30,lw,lh); }
+      doc.setTextColor(200,200,205); doc.setFont('helvetica','normal'); doc.setFontSize(10);
+      doc.text('Cierre de viáticos · '+periodoLabel(periodo), M, 86);
+      doc.setTextColor(150,150,155); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+      doc.text('SUPERVISOR', W-M, 42, {align:'right'});
+      doc.setTextColor(255,255,255); doc.setFontSize(17);
+      doc.text(sup, W-M, 62, {align:'right'});
+    }
+    header();
+    let y=142;
+    const nl=(need)=>{ if(y+need > H-46){ doc.addPage(); y=48; } };
+
+    grupos.forEach(({cat,facs})=>{
+      const sub=facs.reduce((a,x)=>a+x.total,0);
+      nl(48);
+      doc.setFillColor(...SOFT); doc.rect(M,y,W-2*M,30,'F');
+      doc.setFillColor(...BORDO); doc.rect(M,y,4,30,'F');
+      doc.setTextColor(...INK); doc.setFont('helvetica','bold'); doc.setFontSize(12);
+      doc.text(cat, M+14, y+20);
+      doc.text(fmtMoney(sub), W-M-12, y+20, {align:'right'});
+      y+=42;
+      facs.forEach(fx=>{
+        nl(26);
+        doc.setTextColor(...GREY); doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
+        doc.text(fechaCorta(fx.fecha_rendicion||fx.fecha), M+14, y);
+        doc.setTextColor(...INK); doc.setFont('helvetica','bold');
+        doc.text(doc.splitTextToSize(fx.razon_social||'—', 300)[0], M+70, y);
+        doc.setTextColor(...LGREY); doc.setFont('helvetica','normal'); doc.setFontSize(8);
+        doc.text(fx.local||'—', M+70, y+11);
+        doc.setTextColor(...INK); doc.setFontSize(9.5);
+        doc.text(fmtMoney(fx.total), W-M-12, y, {align:'right'});
+        y+=24;
+      });
+      y+=14;
+    });
+
+    nl(64);
+    doc.setFillColor(...INK); doc.roundedRect(M,y,W-2*M,54,10,10,'F');
+    doc.setTextColor(180,180,185); doc.setFont('helvetica','bold'); doc.setFontSize(10);
+    doc.text('TOTAL DEL PERÍODO', M+18, y+22);
+    doc.setTextColor(150,150,155); doc.setFont('helvetica','normal'); doc.setFontSize(10);
+    doc.text(sup, M+18, y+38);
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(20);
+    doc.text(fmtMoney(totalGen), W-M-18, y+35, {align:'right'});
+
+    doc.save(`cierre_${sup.replace(/\s+/g,'_')}_${periodo}.pdf`);
+  }catch(ex){ toast('No pude generar el PDF: '+(ex.message||ex)); }
+}
 function openLightbox(url, fileId){
   $('#lightbox-img').src=url;
   $('#lightbox-drive').href = fileId ? `https://drive.google.com/file/d/${fileId}/view` : '#';
