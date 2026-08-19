@@ -1063,12 +1063,30 @@ $('#scan-confirm').addEventListener('click', ()=>{
 async function runOCR(blob){
   openReview(true);
   try{
-    const b64 = await blobToB64(blob);
+    // Equilibrio precisión/velocidad: 1600px y calidad 0.8. Cubre bien la letra chica
+    // (percepciones, impuestos internos) y sigue pesando ~300-400KB, muchísimo más
+    // rápido que mandar la imagen completa. La grande se archiva igual en Drive.
+    const b64 = await blobReducidoB64(blob, 1600, 0.8);
     extracted = await api('/api/scan',{method:'POST',body:{imagen_b64:b64}});
     fillReview(extracted);
   }catch(ex){
     fillReview({}); toast('No pude leer la factura: '+ex.message+' · Cargá los datos a mano');
   }
+}
+/* Reduce un blob de imagen a un lado máximo y calidad dados; devuelve base64 sin prefijo. */
+function blobReducidoB64(blob, maxLado, calidad){
+  return new Promise((res,rej)=>{
+    const img=new Image();
+    img.onload=()=>{
+      const escala=Math.min(1, maxLado/Math.max(img.width,img.height));
+      const w=Math.max(1,Math.round(img.width*escala)), h=Math.max(1,Math.round(img.height*escala));
+      const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      res(cv.toDataURL('image/jpeg',calidad).split(',')[1]);
+    };
+    img.onerror=rej;
+    img.src=URL.createObjectURL(blob);
+  });
 }
 function blobToB64(blob){
   return new Promise((res,rej)=>{
