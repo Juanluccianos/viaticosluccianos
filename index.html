@@ -733,7 +733,7 @@ $('#fab-scan').addEventListener('click', abrirPicker);
    El scanner solo se ocupa del ajuste de esquinas en adelante.
    ======================================================================= */
 const C=$('#scan-canvas'), stage=$('#scan-stage');
-let rawImg=null, corners=null, filterMode='bn';   // siempre B/N (look scanner)
+let rawImg=null, corners=null, filterMode='gris';   // siempre Gris (contraste, sin ennegrecer sombras)
 
 // Dispara el selector nativo. Reseteamos value para que elegir la misma foto
 // dos veces seguidas vuelva a disparar el evento 'change'.
@@ -881,7 +881,7 @@ function drawOutline(){
   ctx.closePath(); ctx.fill(); ctx.stroke();
 }
 
-/* Filtro fijo: B/N (umbral adaptativo, look scanner). El selector se sacó. */
+/* Filtro fijo: Gris (realza contraste sin ennegrecer sombras). El selector se sacó. */
 
 /* ---- Homografía: warp del cuadrilátero a rectángulo ---- */
 function solve8(A,b){ // Gauss para sistema 8x8
