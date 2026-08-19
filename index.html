@@ -235,6 +235,39 @@ input,select{font-family:inherit;font-size:16px}
   font-size:14px;color:var(--bordo);background:transparent;border:1.5px solid var(--line)}
 .btn-eliminar:hover{background:#f7ecec;border-color:#e0bcbc}
 
+/* Detalle read-only del viático (admin) */
+.det-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:6px 2px 2px}
+.det-head h2{margin:6px 0 0}
+.det-tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.03em;color:var(--ink);background:var(--paper-2);
+  padding:4px 10px;border-radius:999px}
+.det-tag .icon{width:13px;height:13px}
+.det-x{flex:none;width:34px;height:34px;border-radius:50%;border:1.5px solid var(--line);
+  background:var(--crema);color:var(--ink-soft);font-size:16px;cursor:pointer;display:grid;place-items:center}
+.det-x:hover{background:var(--paper-2);color:var(--ink)}
+.det-readonly{font-size:12.5px;color:var(--ink-soft);margin:10px 2px 14px;
+  display:flex;align-items:center;gap:6px}
+.det-lock{font-size:13px}
+.det-img{cursor:zoom-in}
+.det-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:14px}
+.det-cell{background:var(--crema);padding:11px 13px;min-width:0}
+.det-cell.full{grid-column:1 / -1}
+.det-k{font-size:11px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;
+  letter-spacing:.03em;margin-bottom:3px}
+.det-v{font-size:14.5px;color:var(--ink);word-break:break-word}
+.det-v.mono{font-family:var(--font-m,monospace)}
+.det-montos{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:14px}
+.det-mrow{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;
+  background:var(--crema);border-bottom:1px solid var(--line);font-size:14px}
+.det-mrow:last-child{border-bottom:none}
+.det-mrow .det-mk{color:var(--ink-soft)}
+.det-mrow .det-mv{font-variant-numeric:tabular-nums;font-weight:500}
+.det-mrow.total{background:var(--ink);color:var(--crema);font-weight:700;font-size:16px}
+.det-mrow.total .det-mk{color:rgba(255,255,255,.75)}
+.det-edit{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-soft);
+  background:var(--paper-2);border-radius:10px;padding:9px 12px;margin-bottom:14px}
+
 /* Combo buscador (local de rendición) */
 .combo{position:relative}
 .combo input{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;
@@ -552,6 +585,27 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
   <button class="lightbox-close" id="lightbox-close" aria-label="Cerrar">✕</button>
   <a class="lightbox-drive" id="lightbox-drive" href="#" target="_blank" rel="noopener">Abrir en Google Drive</a>
   <img id="lightbox-img" alt="">
+</div>
+
+<!-- Sheet DETALLE de viático (solo lectura, para el admin) -->
+<div class="sheet-bg hidden" id="det-bg">
+  <div class="sheet" id="det-sheet">
+    <div class="sheet-grab"></div>
+    <div class="det-head">
+      <div>
+        <span class="det-tag" id="det-cat"></span>
+        <h2 id="det-razon">—</h2>
+      </div>
+      <button class="det-x" id="det-close" aria-label="Cerrar">✕</button>
+    </div>
+    <p class="det-readonly"><span class="det-lock">🔒</span> Vista de solo lectura — así lo cargó el supervisor.</p>
+    <img class="review-img det-img" id="det-img" alt="Comprobante">
+    <div id="det-cuerpo"></div>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" id="det-cerrar-btn">Cerrar</button>
+      <button class="btn" id="det-ver-img">Ver comprobante</button>
+    </div>
+  </div>
 </div>
 
 <!-- Sheet ABM usuarios -->
@@ -1459,7 +1513,7 @@ function renderDetalle(){
   if(!g.length){ $('#adm-panel').innerHTML='<div class="empty"><div class="big">'+icon('folder',40)+'</div><p>No hay gastos con estos filtros.</p></div>'; return; }
   $('#adm-panel').innerHTML=`<table><thead><tr>
     <th></th>${thSort('supervisor','Supervisor')}${thSort('local','Local')}${thSort('fecha_rendicion','Fecha rendición','hide-sm')}${thSort('razon_social','Razón social')}${thSort('categoria','Categoría')}${thSort('tipo_comprobante','Tipo','hide-sm')}${thSort('total','Total','num')}</tr></thead><tbody>${
-    g.map(x=>`<tr>
+    g.map((x,i)=>`<tr class="fila-det" data-idx="${i}" style="cursor:pointer">
       <td><img class="thumb" src="${imgUrl(x.imagen_key)}" data-full="${imgUrl(x.imagen_key)}" data-fileid="${x.imagen_key}" alt="ver"></td>
       <td class="subtable-supervisor">${esc(x.supervisor)}</td>
       <td>${esc(x.local||'—')}</td>
@@ -1469,7 +1523,10 @@ function renderDetalle(){
       <td class="hide-sm">${x.tipo_comprobante||'—'}</td>
       <td class="num">${fmtMoney(x.total)}</td>
     </tr>`).join('')}</tbody></table>`;
-  $('#adm-panel').querySelectorAll('.thumb').forEach(t=>t.onclick=()=>openLightbox(t.dataset.full, t.dataset.fileid));
+  // La miniatura abre directo la imagen (peek rápido) sin disparar el detalle de la fila.
+  $('#adm-panel').querySelectorAll('.thumb').forEach(t=>t.onclick=(e)=>{ e.stopPropagation(); openLightbox(t.dataset.full, t.dataset.fileid); });
+  // Tocar la fila (viático) abre el detalle completo en modo solo lectura.
+  $('#adm-panel').querySelectorAll('.fila-det').forEach(tr=>tr.onclick=()=>abrirDetalleAdmin(g[+tr.dataset.idx]));
   $('#adm-panel').querySelectorAll('.th-sort').forEach(t=>t.onclick=()=>{
     const col=t.dataset.col;
     if(admSort.col===col) admSort.dir = admSort.dir==='asc'?'desc':'asc';
@@ -1674,6 +1731,57 @@ function openLightbox(url, fileId){
 }
 $('#lightbox-close').addEventListener('click', ()=>$('#lightbox').classList.add('hidden'));
 $('#lightbox').addEventListener('click', e=>{ if(e.target.id==='lightbox') $('#lightbox').classList.add('hidden'); });
+
+/* =======================================================================
+   DETALLE de un viático (solo lectura) — panel de administración.
+   Muestra TODO lo que cargó el supervisor, sin permitir editar ni borrar.
+   No toca el backend: los campos ya vienen en el objeto de la fila.
+   ======================================================================= */
+let detGastoActual=null;
+function detFecha(f){                 // fechas vienen como 'YYYY-MM-DD'; las paso a DD/MM/AAAA
+  if(!f) return '—';
+  const m=String(f).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : f;
+}
+function detCell(k,v,full){
+  return `<div class="det-cell${full?' full':''}"><div class="det-k">${k}</div><div class="det-v">${v}</div></div>`;
+}
+function abrirDetalleAdmin(g){
+  if(!g) return;
+  detGastoActual=g;
+  // Encabezado
+  $('#det-cat').innerHTML = `${catIcon(g.categoria)} ${esc(g.categoria||'—')}`;
+  $('#det-razon').textContent = g.razon_social || '(sin razón social)';
+  // Imagen del comprobante
+  $('#det-img').src = imgUrl(g.imagen_key);
+  // Grilla de datos generales
+  const cuit = g.cuit ? `<span class="det-v mono">${esc(g.cuit)}</span>` : '—';
+  $('#det-cuerpo').innerHTML = `
+    <div class="det-grid">
+      ${detCell('Supervisor', esc(g.supervisor||'—'))}
+      ${detCell('Local de rendición', esc(g.local||'—'))}
+      ${detCell('Fecha del ticket', detFecha(g.fecha))}
+      ${detCell('Fecha de rendición', detFecha(g.fecha_rendicion))}
+      ${detCell('CUIT', cuit)}
+      ${detCell('Tipo de comprobante', esc(g.tipo_comprobante||'—'))}
+    </div>
+    <div class="det-montos">
+      <div class="det-mrow"><span class="det-mk">Neto</span><span class="det-mv">${fmtMoney(g.neto)}</span></div>
+      <div class="det-mrow"><span class="det-mk">IVA</span><span class="det-mv">${fmtMoney(g.iva)}</span></div>
+      <div class="det-mrow"><span class="det-mk">Percepciones</span><span class="det-mv">${fmtMoney(g.percepciones)}</span></div>
+      <div class="det-mrow"><span class="det-mk">Imp. internos</span><span class="det-mv">${fmtMoney(g.impuestos_internos)}</span></div>
+      <div class="det-mrow total"><span class="det-mk">Total</span><span class="det-mv">${fmtMoney(g.total)}</span></div>
+    </div>
+    ${g.editado_en ? `<div class="det-edit"><span class="pill-editado">editado</span> Modificado por el supervisor el ${detFecha(g.editado_en)}${g.editado_por?(' · '+esc(g.editado_por)):''}</div>` : ''}`;
+  $('#det-bg').classList.add('centrado');
+  $('#det-bg').classList.remove('hidden');
+}
+function cerrarDetalleAdmin(){ $('#det-bg').classList.add('hidden'); detGastoActual=null; }
+$('#det-close').addEventListener('click', cerrarDetalleAdmin);
+$('#det-cerrar-btn').addEventListener('click', cerrarDetalleAdmin);
+$('#det-bg').addEventListener('click', e=>{ if(e.target.id==='det-bg') cerrarDetalleAdmin(); });
+$('#det-ver-img').addEventListener('click', ()=>{ if(detGastoActual) openLightbox(imgUrl(detGastoActual.imagen_key), detGastoActual.imagen_key); });
+$('#det-img').addEventListener('click', ()=>{ if(detGastoActual) openLightbox(imgUrl(detGastoActual.imagen_key), detGastoActual.imagen_key); });
 
 /* =======================================================================
    ABM DE USUARIOS
