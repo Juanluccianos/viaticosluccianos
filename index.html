@@ -416,29 +416,19 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
   </main>
 </div>
 
-<!-- ============ SCANNER ============ -->
+<!-- ============ SCANNER (solo ajuste de esquinas; la captura la hace la cámara nativa) ============ -->
 <section id="scanner" class="hidden">
   <div class="scan-top">
     <button class="scan-side" id="scan-cancel" style="text-align:left">Cancelar</button>
-    <div class="st-title" id="scan-title">Encuadrá el comprobante</div>
+    <div class="st-title" id="scan-title">Ajustá el recuadro</div>
     <div class="scan-side"></div>
   </div>
   <div class="scan-stage" id="scan-stage">
-    <video id="scan-video" autoplay playsinline muted></video>
     <canvas id="scan-canvas" class="hidden"></canvas>
-    <div class="scan-guide" id="scan-guide"></div>
-    <div class="scan-hint" id="scan-hint">Apoyá la factura sobre una superficie plana y con buena luz</div>
+    <div class="scan-hint" id="scan-hint">Arrastrá las esquinas para encuadrar el comprobante</div>
   </div>
-  <div class="scan-bar" id="scan-bar-capture">
-    <div class="scan-side"></div>
-    <button class="shutter" id="scan-shutter" aria-label="Capturar"></button>
-    <div class="scan-side">
-      <button id="scan-file">Galería</button>
-      <input type="file" id="scan-input" accept="image/*" capture="environment" class="hidden">
-    </div>
-  </div>
-  <div class="scan-bar hidden" id="scan-bar-adjust">
-    <button class="scan-side" id="scan-retry" style="text-align:left">Repetir</button>
+  <div class="scan-bar" id="scan-bar-adjust">
+    <button class="scan-side" id="scan-retry" style="text-align:left">Otra foto</button>
     <div class="mode-toggle">
       <button data-m="gris" class="on" id="m-gris">Gris</button>
       <button data-m="bn" id="m-bn">B/N</button>
@@ -447,6 +437,11 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
     <button class="btn" id="scan-confirm" style="width:auto;padding:12px 18px">Procesar</button>
   </div>
 </section>
+
+<!-- Selector de imagen SIN 'capture': en iPhone abre el menú "Tomar foto / Elegir
+     de la fototeca" y usa la cámara nativa del sistema. Calidad completa (12 MP)
+     y sin el prompt de permiso web que iOS repite en cada uso. -->
+<input type="file" id="pick-input" accept="image/*" class="hidden">
 
 <!-- Sheet de revisión -->
 <div class="sheet-bg hidden" id="review-bg">
@@ -637,7 +632,6 @@ $('#login-form').addEventListener('submit', async e=>{
   }finally{ btn.disabled=false; btn.textContent='Entrar'; }
 });
 function doLogout(){
-  if(typeof stopCamera === 'function') stopCamera();
   if(admPollId){ clearInterval(admPollId); admPollId=null; }
   session=null; localStorage.removeItem('viaticos_session');
   $('#app').classList.add('hidden'); $('#login').classList.remove('hidden');
@@ -714,73 +708,35 @@ function renderSupList(gastos){
     };
   });
 }
-$('#fab-scan').addEventListener('click', openScanner);
+$('#fab-scan').addEventListener('click', abrirPicker);
 
 /* =======================================================================
-   SCANNER  (cámara → recorte perspectiva → filtro → IA)
+   SCANNER  (cámara NATIVA → recorte perspectiva → filtro → IA)
+   La foto se saca con la cámara del sistema (input file sin 'capture'),
+   así iOS no vuelve a pedir permiso web y la imagen llega en calidad full.
+   El scanner solo se ocupa del ajuste de esquinas en adelante.
    ======================================================================= */
-const V=$('#scan-video'), C=$('#scan-canvas'), stage=$('#scan-stage');
-let stream=null, rawImg=null, corners=null, filterMode='gris';
+const C=$('#scan-canvas'), stage=$('#scan-stage');
+let rawImg=null, corners=null, filterMode='gris';
 
-async function openScanner(){
-  $('#scanner').classList.remove('hidden');
-  showCaptureMode();
-  // Reusamos la cámara SOLO si el track sigue vivo. iOS a veces mata el track
-  // cuando el scanner queda oculto; en ese caso el readyState pasa a 'ended' y
-  // hay que volver a pedirla (si no, se ve la cámara congelada/negra).
-  const track = stream && stream.getVideoTracks()[0];
-  if(track && track.readyState==='live'){
-    V.srcObject=stream; V.classList.remove('hidden'); V.style.opacity=''; C.classList.add('hidden');
-    return;
-  }
-  try{
-    stream = await navigator.mediaDevices.getUserMedia({
-      video:{
-        facingMode:{ideal:'environment'},
-        // Pedimos la mayor resolución posible: el preview del <video> por defecto
-        // viene en baja (~720p) y de ahí sale la foto borrosa. Con 'ideal' el navegador
-        // baja solo hasta lo que la cámara soporte, nunca falla por pedir de más.
-        width:{ideal:3840}, height:{ideal:2160}
-      }
-    });
-    V.srcObject=stream; V.classList.remove('hidden'); V.style.opacity=''; C.classList.add('hidden');
-  }catch(ex){
-    // sin cámara: caer directo a selección de archivo
-    $('#scan-hint').textContent='No pude abrir la cámara. Usá "Galería".';
-  }
-}
+// Dispara el selector nativo. Reseteamos value para que elegir la misma foto
+// dos veces seguidas vuelva a disparar el evento 'change'.
+function abrirPicker(){ const inp=$('#pick-input'); inp.value=''; inp.click(); }
+
+$('#pick-input').addEventListener('change', e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const img=new Image();
+  img.onload=()=>{ $('#scanner').classList.remove('hidden'); enterAdjust(img); };
+  img.onerror=()=>toast('No pude abrir esa imagen. Probá de nuevo.');
+  img.src=URL.createObjectURL(f);
+});
+
 function closeScanner(){
-  // no cortamos la cámara acá: la dejamos viva para no volver a pedir permiso
-  // en el próximo escaneo de la misma sesión. Se corta solo al cerrar sesión.
   $('#scanner').classList.add('hidden');
   clearAllHandles();
 }
-function stopCamera(){
-  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
-}
-function showCaptureMode(){
-  $('#scan-bar-capture').classList.remove('hidden');
-  $('#scan-bar-adjust').classList.add('hidden');
-  $('#scan-guide').classList.remove('hidden');
-  $('#scan-title').textContent='Encuadrá el comprobante';
-  $('#scan-hint').classList.remove('hidden');
-  V.classList.remove('hidden'); V.style.opacity=''; C.classList.add('hidden');
-  clearAllHandles();
-}
 $('#scan-cancel').addEventListener('click', closeScanner);
-$('#scan-retry').addEventListener('click', ()=>{ if(!stream) openScanner(); else showCaptureMode(); });
-$('#scan-file').addEventListener('click', ()=>$('#scan-input').click());
-$('#scan-input').addEventListener('change', e=>{
-  const f=e.target.files[0]; if(!f) return;
-  const img=new Image(); img.onload=()=>enterAdjust(img); img.src=URL.createObjectURL(f);
-});
-$('#scan-shutter').addEventListener('click', ()=>{
-  if(!stream) return;
-  const cv=document.createElement('canvas');
-  cv.width=V.videoWidth; cv.height=V.videoHeight;
-  cv.getContext('2d').drawImage(V,0,0);
-  const img=new Image(); img.onload=()=>enterAdjust(img); img.src=cv.toDataURL('image/jpeg',.96);
-});
+$('#scan-retry').addEventListener('click', abrirPicker);   // "Otra foto"
 
 /* ---- detección automática del ticket ----
    Heurística liviana: el ticket es la zona más clara del cuadro. Buscamos,
@@ -822,13 +778,6 @@ function autoDetectDocumento(ctx, w, h){
 /* ---- modo ajuste: dibuja imagen en canvas + handles de esquina y de lado ---- */
 function enterAdjust(img){
   rawImg=img;
-  // No usamos display:none en el video: en iOS eso suelta la cámara y obliga a
-  // volver a pedir permiso. Lo dejamos corriendo detrás, solo invisible.
-  V.style.opacity='0';
-  $('#scan-guide').classList.add('hidden');
-  $('#scan-hint').classList.add('hidden');
-  $('#scan-bar-capture').classList.add('hidden');
-  $('#scan-bar-adjust').classList.remove('hidden');
   $('#scan-title').textContent='Ajustá el recuadro';
   C.classList.remove('hidden');
 
