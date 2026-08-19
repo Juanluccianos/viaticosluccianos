@@ -56,6 +56,12 @@ input,select{font-family:inherit;font-size:16px}
 
 /* ============ LOGIN ============ */
 #login{min-height:100dvh;display:grid;place-items:center;padding:24px;background:var(--ink)}
+.pw-wrap{position:relative;display:flex;align-items:center}
+.pw-wrap input{width:100%;padding-right:44px}
+.pw-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:transparent;border:none;
+  color:var(--ink-soft);padding:6px;cursor:pointer;display:grid;place-items:center;border-radius:8px}
+.pw-eye:hover{color:var(--ink);background:rgba(0,0,0,.05)}
+.pw-eye.on{color:var(--ink)}
 .card-login{width:100%;max-width:380px;background:var(--crema);border:1px solid var(--line);
   border-radius:20px;box-shadow:var(--shadow);padding:36px 28px 30px;text-align:center}
 .login-logo{width:180px;max-width:70%;height:auto;margin:0 auto 18px;display:block;object-fit:contain}
@@ -312,6 +318,11 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
 .usr-name{font-weight:600;font-size:14.5px}
 .usr-meta{font-size:12.5px;color:var(--ink-soft)}
 .usr-off{opacity:.5}
+.usr-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;flex:none}
+.mini.danger{color:var(--bordo);border-color:var(--bordo)}
+.mini.danger:hover{background:var(--bordo);color:#fff}
+.pill-admin{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+  background:var(--ink);color:var(--crema);padding:2px 8px;border-radius:999px;margin-left:4px}
 .pill-inactivo{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
   background:#f3e0e0;color:var(--bordo);padding:2px 8px;border-radius:999px;margin-left:6px}
 .usr-form{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px;background:var(--paper-2);
@@ -367,7 +378,12 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
     </div>
     <div class="field">
       <label for="p">Contraseña</label>
-      <input id="p" name="password" type="password" autocomplete="current-password" required>
+      <div class="pw-wrap">
+        <input id="p" name="password" type="password" autocomplete="current-password" required>
+        <button type="button" class="pw-eye" id="pw-eye" aria-label="Mostrar contraseña" title="Mostrar contraseña">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
     </div>
     <button class="btn" id="login-btn" type="submit">Entrar</button>
     <div class="err" id="login-err"></div>
@@ -436,7 +452,7 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
             <button data-v="resumen">Cierre por supervisor</button>
           </div>
           <button class="mini" id="adm-usuarios"><span class="icon" style="width:16px;height:16px"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M15.5 3.13a4 4 0 0 1 0 7.75"/></svg></span> Usuarios</button>
-          <button class="mini ok" id="adm-export">Exportar CSV</button>
+          <button class="mini ok" id="adm-export">Exportar Excel</button>
         </div>
         <div class="panel" id="adm-panel"></div>
       </div>
@@ -535,8 +551,9 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
       <div><label>Nombre y apellido</label><input id="nu-nombre" placeholder="Pedro Gómez"></div>
       <div><label>Usuario</label><input id="nu-usuario" placeholder="pgomez" autocapitalize="none"></div>
       <div><label>Contraseña</label><input id="nu-password" type="text" placeholder="clave inicial"></div>
+      <div><label>Rol</label><select id="nu-rol"><option value="supervisor">Supervisor</option><option value="admin">Administrador</option></select></div>
       <div><label>Local habitual (opcional)</label><select id="nu-local"><option value="">—</option></select></div>
-      <div class="full"><button class="btn" id="nu-crear" style="width:auto;padding:10px 18px">+ Agregar supervisor</button></div>
+      <div class="full"><button class="btn" id="nu-crear" style="width:auto;padding:10px 18px">+ Agregar usuario</button></div>
     </div>
 
     <div class="panel" id="usr-list"></div>
@@ -646,6 +663,15 @@ function fillCategorias(sel){
 /* =======================================================================
    AUTH
    ======================================================================= */
+$('#pw-eye').addEventListener('click', ()=>{
+  const inp=$('#p'), btn=$('#pw-eye');
+  const ver = inp.type==='password';
+  inp.type = ver ? 'text' : 'password';
+  btn.classList.toggle('on', ver);
+  btn.setAttribute('aria-label', ver ? 'Ocultar contraseña' : 'Mostrar contraseña');
+  btn.title = ver ? 'Ocultar contraseña' : 'Mostrar contraseña';
+  inp.focus();
+});
 $('#login-form').addEventListener('submit', async e=>{
   e.preventDefault();
   const btn=$('#login-btn'), err=$('#login-err');
@@ -1060,6 +1086,11 @@ function numToEs(n){
   if(n===undefined||n===null||n==='') return '';
   return Number(n).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
 }
+/* CUIT siempre con guiones XX-XXXXXXXX-X, aunque venga sin ellos. */
+function normCuit(c){
+  const d = String(c||'').replace(/\D/g,'');
+  return d.length===11 ? `${d.slice(0,2)}-${d.slice(2,10)}-${d.slice(10)}` : (c||'');
+}
 
 /* Comprobación: neto + IVA + percepciones + imp. internos = total.
    Devuelve true si cuadra (tolerancia 1 peso por redondeos). Pinta la línea
@@ -1094,7 +1125,7 @@ function revisarSuma(){
 function fillReview(d){
   $('#r-razon').value = d.razon_social||'';
   $('#r-fecha').value = d.fecha||new Date().toISOString().slice(0,10);
-  $('#r-cuit').value  = d.cuit||'';
+  $('#r-cuit').value  = normCuit(d.cuit);
   $('#r-tipo').value  = d.tipo_comprobante||'B';
   $('#r-categoria').value = (CATEGORIAS.find(c=>c.id===d.categoria)? d.categoria : 'Otros');
   $('#r-neto').value  = numToEs(d.neto);
@@ -1116,7 +1147,7 @@ function abrirEdicionGasto(g){
   $('#r-razon').value = g.razon_social||'';
   $('#r-fecha').value = g.fecha||'';
   $('#r-fecha-rendicion').value = g.fecha_rendicion||'';
-  $('#r-cuit').value = g.cuit||'';
+  $('#r-cuit').value = normCuit(g.cuit);
   $('#r-tipo').value = g.tipo_comprobante||'B';
   $('#r-categoria').value = (CATEGORIAS.find(c=>c.id===g.categoria)? g.categoria : 'Otros');
   $('#r-neto').value = numToEs(g.neto);
@@ -1252,7 +1283,7 @@ function initAdmin(){
   fillCategorias2($('#adm-categoria'));
   $('#adm-periodo').onchange=loadAdmin;
   $('#adm-categoria').onchange=renderAdmin;
-  $('#adm-export').onclick=exportCSV;
+  $('#adm-export').onclick=exportExcel;
   $('#adm-usuarios').onclick=openUsuarios;
   document.querySelectorAll('#adm-vista button').forEach(b=>b.onclick=()=>{
     admVista=b.dataset.v;
@@ -1391,6 +1422,67 @@ function exportCSV(){
 }
 function imgUrl(key){ return API_BASE+'/api/imagen/'+encodeURIComponent(key)+'?t='+(session?.token||''); }
 
+/* Export a Excel (.xlsx) con formato: encabezado con la marca, columnas con
+   ancho, montos con formato de moneda y una fila de totales. ExcelJS del CDN. */
+let _exceljs=null;
+function ensureExcelJS(){
+  if(window.ExcelJS) return Promise.resolve(window.ExcelJS);
+  if(_exceljs) return _exceljs;
+  _exceljs=new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+    s.onload=()=>res(window.ExcelJS);
+    s.onerror=()=>{ _exceljs=null; rej(new Error('no pude cargar el generador de Excel (revisá la conexión)')); };
+    document.head.appendChild(s);
+  });
+  return _exceljs;
+}
+async function exportExcel(){
+  try{
+    const ExcelJS = await ensureExcelJS();
+    const g = filtered();
+    const periodo = $('#adm-periodo').value;
+    const wb = new ExcelJS.Workbook();
+    wb.creator = "Viáticos Lucciano's";
+    const ws = wb.addWorksheet('Viáticos '+periodo, {views:[{state:'frozen', ySplit:1}]});
+    ws.columns = [
+      {header:'Supervisor', key:'sup', width:20},
+      {header:'Local', key:'local', width:18},
+      {header:'Fecha rendición', key:'fecha', width:15},
+      {header:'CUIT', key:'cuit', width:15},
+      {header:'Razón social', key:'razon', width:28},
+      {header:'Tipo', key:'tipo', width:9},
+      {header:'Categoría', key:'cat', width:15},
+      {header:'Neto', key:'neto', width:14},
+      {header:'IVA', key:'iva', width:13},
+      {header:'Percepciones', key:'percep', width:14},
+      {header:'Imp. internos', key:'internos', width:14},
+      {header:'Total', key:'total', width:15},
+    ];
+    const hr = ws.getRow(1); hr.height = 22;
+    hr.eachCell(c=>{
+      c.font = {bold:true, color:{argb:'FFFFFFFF'}};
+      c.fill = {type:'pattern', pattern:'solid', fgColor:{argb:'FF0F0F11'}};
+      c.alignment = {vertical:'middle', horizontal:'left'};
+    });
+    g.forEach(x=>ws.addRow({
+      sup:x.supervisor, local:x.local||'', fecha:x.fecha_rendicion||'', cuit:normCuit(x.cuit),
+      razon:x.razon_social||'', tipo:x.tipo_comprobante||'', cat:x.categoria,
+      neto:x.neto||0, iva:x.iva||0, percep:x.percepciones||0, internos:x.impuestos_internos||0, total:x.total||0
+    }));
+    const sum = k => g.reduce((a,x)=>a+(Number(x[k])||0),0);
+    const tot = ws.addRow({ sup:'TOTAL', neto:sum('neto'), iva:sum('iva'),
+      percep:sum('percepciones'), internos:sum('impuestos_internos'), total:sum('total') });
+    tot.font = {bold:true};
+    tot.eachCell(c=>{ c.border = {top:{style:'medium', color:{argb:'FF0F0F11'}}}; });
+    ['neto','iva','percep','internos','total'].forEach(k=>{ ws.getColumn(k).numFmt = '"$"#,##0.00'; });
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = `viaticos_${periodo}.xlsx`; a.click();
+  }catch(ex){ toast('No pude generar el Excel: '+(ex.message||ex)); }
+}
+
 /* =======================================================================
    REPORTE PDF · Cierre por supervisor (diseño "Marca Lucciano's")
    Se dibuja a mano con jsPDF (cargado del CDN la primera vez que se usa).
@@ -1507,32 +1599,52 @@ async function loadUsuarios(){
   box.innerHTML='<div class="center-load"><div class="spin"></div>Cargando…</div>';
   try{
     const {usuarios} = await api('/api/admin/usuarios');
+    const yo = session.user.id;
     box.innerHTML = usuarios.map(u=>`
       <div class="usr-row ${u.activo?'':'usr-off'}">
         <div class="usr-av">${(u.nombre||'?')[0].toUpperCase()}</div>
         <div class="usr-main">
-          <div class="usr-name">${esc(u.nombre)} ${u.activo?'':'<span class="pill-inactivo">Inactivo</span>'}</div>
-          <div class="usr-meta">@${esc(u.usuario)} · ${u.rol}${u.local? ' · '+esc(u.local):''}</div>
+          <div class="usr-name">${esc(u.nombre)} ${u.rol==='admin'?'<span class="pill-admin">admin</span>':''} ${u.activo?'':'<span class="pill-inactivo">Inactivo</span>'}</div>
+          <div class="usr-meta">@${esc(u.usuario)}${u.local? ' · '+esc(u.local):''}</div>
         </div>
-        ${u.rol!=='admin' ? `<button class="mini ${u.activo?'no':'ok'}" data-id="${u.id}" data-activo="${u.activo?0:1}">${u.activo?'Desactivar':'Activar'}</button>` : ''}
+        <div class="usr-actions">
+          <button class="mini" data-act="clave" data-id="${u.id}" data-nombre="${esc(u.nombre)}">Clave</button>
+          ${u.rol!=='admin' ? `<button class="mini ${u.activo?'no':'ok'}" data-act="toggle" data-id="${u.id}" data-activo="${u.activo?0:1}">${u.activo?'Desactivar':'Activar'}</button>` : ''}
+          ${String(u.id)!==String(yo) ? `<button class="mini danger" data-act="borrar" data-id="${u.id}" data-nombre="${esc(u.nombre)}">Borrar</button>` : ''}
+        </div>
       </div>`).join('') || '<div class="empty" style="padding:24px"><p>Sin usuarios todavía.</p></div>';
-    box.querySelectorAll('button[data-id]').forEach(b=>b.onclick=async ()=>{
-      try{
-        await api('/api/admin/usuarios/'+b.dataset.id, {method:'PATCH', body:{activo: b.dataset.activo==='1'}});
-        toast('Usuario actualizado'); loadUsuarios();
-      }catch(ex){ toast('Error: '+ex.message); }
-    });
+    box.querySelectorAll('button[data-act]').forEach(b=>b.onclick=()=>accionUsuario(b));
   }catch(ex){ box.innerHTML=`<div class="empty"><p>${ex.message}</p></div>`; }
+}
+async function accionUsuario(b){
+  const id=b.dataset.id, nombre=b.dataset.nombre||'';
+  try{
+    if(b.dataset.act==='toggle'){
+      await api('/api/admin/usuarios/'+id, {method:'PATCH', body:{activo: b.dataset.activo==='1'}});
+      toast('Usuario actualizado');
+    }else if(b.dataset.act==='clave'){
+      const nueva=prompt(`Nueva contraseña para ${nombre}:`);
+      if(nueva===null) return;
+      if(nueva.trim().length<4){ toast('La contraseña debe tener al menos 4 caracteres'); return; }
+      await api('/api/admin/usuarios/'+id, {method:'PATCH', body:{password:nueva.trim()}});
+      toast('Contraseña actualizada ✓');
+    }else if(b.dataset.act==='borrar'){
+      if(!confirm(`¿Borrar a ${nombre}? No se puede deshacer.`)) return;
+      await api('/api/admin/usuarios/'+id, {method:'DELETE'});
+      toast('Usuario borrado');
+    }
+    loadUsuarios();
+  }catch(ex){ toast(ex.message||'Error'); }
 }
 $('#nu-crear').addEventListener('click', async ()=>{
   const nombre=$('#nu-nombre').value.trim(), usuario=$('#nu-usuario').value.trim(),
-        password=$('#nu-password').value, local_id=$('#nu-local').value;
+        password=$('#nu-password').value, local_id=$('#nu-local').value, rol=$('#nu-rol').value;
   if(!nombre||!usuario||!password){ toast('Completá nombre, usuario y contraseña'); return; }
   const btn=$('#nu-crear'); btn.disabled=true;
   try{
-    await api('/api/admin/usuarios',{method:'POST',body:{nombre,usuario,password,local_id: local_id||null}});
-    $('#nu-nombre').value=''; $('#nu-usuario').value=''; $('#nu-password').value=''; $('#nu-local').value='';
-    toast('Supervisor agregado ✓'); loadUsuarios();
+    await api('/api/admin/usuarios',{method:'POST',body:{nombre,usuario,password,rol,local_id: local_id||null}});
+    $('#nu-nombre').value=''; $('#nu-usuario').value=''; $('#nu-password').value=''; $('#nu-local').value=''; $('#nu-rol').value='supervisor';
+    toast(rol==='admin'?'Administrador agregado ✓':'Supervisor agregado ✓'); loadUsuarios();
   }catch(ex){ toast('Error: '+ex.message); }
   finally{ btn.disabled=false; }
 });
