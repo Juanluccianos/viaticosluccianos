@@ -97,6 +97,15 @@ input,select{font-family:inherit;font-size:16px}
   color:var(--crema);background:rgba(255,255,255,.08)}
 .icon-btn:hover{background:rgba(255,255,255,.16)}
 
+/* Comprobación de suma en el review: neto + impuestos = total */
+.r-check{font-size:12.5px;font-weight:600;padding:9px 12px;border-radius:10px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.r-check.ok{background:#e9f7ef;color:#1c7a45}
+.r-check.bad{background:#fdecec;color:#b3261e}
+.r-check .r-fix{background:#b3261e;color:#fff;font-weight:700;font-size:12px;
+  padding:5px 11px;border-radius:8px;flex:none}
+.r-check .r-fix:hover{filter:brightness(.92)}
+
 /* Encabezado del supervisor: saludo + nombre a la izquierda, período a la derecha */
 .sup-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
 .sup-hola{display:flex;flex-direction:column;line-height:1.15;min-width:0}
@@ -483,7 +492,12 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
       <div class="review-field"><label>Neto</label><input id="r-neto" inputmode="decimal"></div>
       <div class="review-field"><label>IVA</label><input id="r-iva" inputmode="decimal"></div>
     </div>
+    <div class="row2">
+      <div class="review-field"><label>Percepciones</label><input id="r-percep" inputmode="decimal"></div>
+      <div class="review-field"><label>Imp. internos</label><input id="r-internos" inputmode="decimal"></div>
+    </div>
     <div class="review-field"><label>Total</label><input id="r-total" inputmode="decimal" style="font-weight:600"></div>
+    <div id="r-check" class="r-check"></div>
     <div class="review-field">
       <label>Local donde se rinde</label>
       <div class="combo" id="local-combo">
@@ -1034,7 +1048,8 @@ function openReview(loading){
   fillCategorias($('#r-categoria'));
   $('#review-bg').classList.remove('hidden');
   if(loading){
-    ['r-razon','r-cuit','r-neto','r-iva','r-total'].forEach(id=>$('#'+id).value='');
+    ['r-razon','r-cuit','r-neto','r-iva','r-percep','r-internos','r-total'].forEach(id=>$('#'+id).value='');
+    revisarSuma();
     $('#r-fecha').value=new Date().toISOString().slice(0,10);
     $('#r-fecha-rendicion').value=new Date().toISOString().slice(0,10);
     $('#r-local-search').value=''; $('#r-local-id').value='';
@@ -1045,6 +1060,37 @@ function numToEs(n){
   if(n===undefined||n===null||n==='') return '';
   return Number(n).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
 }
+
+/* Comprobación: neto + IVA + percepciones + imp. internos = total.
+   Devuelve true si cuadra (tolerancia 1 peso por redondeos). Pinta la línea
+   de control y, si no cuadra, ofrece ajustar el neto (que es el residual). */
+function sumaComponentes(){
+  return parseNum($('#r-neto').value)+parseNum($('#r-iva').value)
+        +parseNum($('#r-percep').value)+parseNum($('#r-internos').value);
+}
+function revisarSuma(){
+  const box=$('#r-check'); if(!box) return true;
+  const total=parseNum($('#r-total').value), suma=sumaComponentes(), dif=+(total-suma).toFixed(2);
+  const cuadra=Math.abs(dif)<=1;
+  box.classList.toggle('ok',cuadra); box.classList.toggle('bad',!cuadra);
+  if(cuadra){
+    box.innerHTML=`<span>✓ Cuadra</span><span>Neto + impuestos = ${fmtMoney(total)}</span>`;
+  }else{
+    const abs=fmtMoney(Math.abs(dif));
+    box.innerHTML=`<span>⚠ No cuadra · ${dif>0?'faltan':'sobran'} ${abs}</span>`
+      +`<button type="button" class="r-fix" id="r-fix-btn">Ajustar neto</button>`;
+    $('#r-fix-btn').onclick=()=>{
+      const nuevoNeto = total - parseNum($('#r-iva').value)
+        - parseNum($('#r-percep').value) - parseNum($('#r-internos').value);
+      $('#r-neto').value = numToEs(Math.max(0, +nuevoNeto.toFixed(2)));
+      revisarSuma();
+    };
+  }
+  return cuadra;
+}
+['r-neto','r-iva','r-percep','r-internos','r-total'].forEach(id=>{
+  const el=$('#'+id); if(el) el.addEventListener('input', revisarSuma);
+});
 function fillReview(d){
   $('#r-razon').value = d.razon_social||'';
   $('#r-fecha').value = d.fecha||new Date().toISOString().slice(0,10);
@@ -1053,7 +1099,10 @@ function fillReview(d){
   $('#r-categoria').value = (CATEGORIAS.find(c=>c.id===d.categoria)? d.categoria : 'Otros');
   $('#r-neto').value  = numToEs(d.neto);
   $('#r-iva').value   = numToEs(d.iva);
+  $('#r-percep').value = numToEs(d.percepciones);
+  $('#r-internos').value = numToEs(d.impuestos_internos);
   $('#r-total').value = numToEs(d.total);
+  revisarSuma();
   $('#review-save').disabled=false; $('#review-save').textContent='Guardar viático';
 }
 
@@ -1072,7 +1121,10 @@ function abrirEdicionGasto(g){
   $('#r-categoria').value = (CATEGORIAS.find(c=>c.id===g.categoria)? g.categoria : 'Otros');
   $('#r-neto').value = numToEs(g.neto);
   $('#r-iva').value  = numToEs(g.iva);
+  $('#r-percep').value = numToEs(g.percepciones);
+  $('#r-internos').value = numToEs(g.impuestos_internos);
   $('#r-total').value = numToEs(g.total);
+  revisarSuma();
   $('#r-local-id').value = g.local_id||'';
   $('#r-local-search').value = g.local||'';
   $('#review-save').disabled=false; $('#review-save').textContent='Guardar cambios';
@@ -1132,6 +1184,7 @@ $('#review-cancel').addEventListener('click', ()=>{ $('#review-bg').classList.ad
 $('#review-save').addEventListener('click', async ()=>{
   if(!$('#r-local-id').value){ toast('Elegí el local donde se rinde el gasto'); return; }
   if(!$('#r-fecha-rendicion').value){ toast('Falta la fecha de rendición'); return; }
+  if(!revisarSuma()){ toast('Los montos no cuadran: neto + impuestos debe dar el total'); return; }
   const btn=$('#review-save'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>Guardando…';
   const datos = {
     razon_social:$('#r-razon').value.trim(),
@@ -1143,6 +1196,8 @@ $('#review-save').addEventListener('click', async ()=>{
     categoria:$('#r-categoria').value,
     neto:parseNum($('#r-neto').value),
     iva:parseNum($('#r-iva').value),
+    percepciones:parseNum($('#r-percep').value),
+    impuestos_internos:parseNum($('#r-internos').value),
     total:parseNum($('#r-total').value),
   };
   try{
@@ -1325,9 +1380,9 @@ function renderResumen(){
 }
 function exportCSV(){
   const g=filtered();
-  const head=['Supervisor','Local','Fecha rendición','CUIT','Razon social','Tipo','Categoria','Neto','IVA','Total'];
+  const head=['Supervisor','Local','Fecha rendición','CUIT','Razon social','Tipo','Categoria','Neto','IVA','Percepciones','Imp. internos','Total'];
   const rows=g.map(x=>[x.supervisor,x.local||'',x.fecha_rendicion||'',x.cuit||'',x.razon_social||'',
-    x.tipo_comprobante||'',x.categoria,x.neto||0,x.iva||0,x.total||0]);
+    x.tipo_comprobante||'',x.categoria,x.neto||0,x.iva||0,x.percepciones||0,x.impuestos_internos||0,x.total||0]);
   const csv=[head,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(';')).join('\n');
   const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');
