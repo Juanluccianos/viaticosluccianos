@@ -1,6 +1,6 @@
 /* Service worker · Viáticos Lucciano's
    Recordá: subir SIEMPRE index.html + sw.js juntos y bumpear la versión. */
-const CACHE = "viaticos-v16";
+const CACHE = "viaticos-v17";
 const ASSETS = ["./", "./index.html", "./manifest.json", "./logo-blanco.png", "./logo-negro.png"];
 
 self.addEventListener("install", e => {

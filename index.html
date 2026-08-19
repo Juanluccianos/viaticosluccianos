@@ -84,18 +84,33 @@ input,select{font-family:inherit;font-size:16px}
 .topbar{position:sticky;top:0;z-index:20;background:var(--ink);color:var(--crema);
   padding:calc(env(safe-area-inset-top) + 12px) 18px 12px;display:flex;
   align-items:center;justify-content:space-between;gap:12px}
-.topbar .tb-title{font-family:var(--font-d);font-weight:700;font-size:17px}
+.topbar .tb-title{font-family:var(--font-d);font-weight:700;font-size:17px;white-space:nowrap}
 .topbar .tb-sub{font-size:12px;opacity:.7;font-family:var(--font-b)}
 .tb-left{display:flex;align-items:center;gap:11px;min-width:0}
 .tb-logo{height:42px;width:auto;flex:none;object-fit:contain}
 .tb-user{display:flex;align-items:center;gap:10px}
 .tb-username{font-family:var(--font-b);font-size:13px;font-weight:600;color:var(--crema);
   max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.9}
-.avatar{width:34px;height:34px;border-radius:50%;background:var(--accent);
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--crema);
   display:grid;place-items:center;font-weight:700;font-size:14px;color:var(--ink);flex:none}
 .icon-btn{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;
   color:var(--crema);background:rgba(255,255,255,.08)}
 .icon-btn:hover{background:rgba(255,255,255,.16)}
+
+/* Encabezado del supervisor: saludo + nombre a la izquierda, período a la derecha */
+.sup-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+.sup-hola{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+.sup-hola-hi{font-size:13px;color:var(--ink-soft);font-family:var(--font-b)}
+.sup-hola-name{font-family:var(--font-d);font-weight:700;font-size:21px;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* En el celular, el nombre y el avatar salen del topbar (que se amontonaba): el
+   nombre ya aparece abajo en el encabezado del supervisor. El topbar queda con
+   logo + título + salir, bien despejado. */
+@media(max-width:640px){
+  .tb-username{display:none}
+  .avatar{display:none}
+}
 
 /* ---- SUPERVISOR (mobile) ---- */
 #sup-view{max-width:520px;margin:0 auto;padding:16px 16px 120px}
@@ -370,9 +385,12 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
 
   <!-- ---- SUPERVISOR ---- -->
   <main id="sup-view" class="hidden">
-    <div style="display:flex;justify-content:space-between;align-items:center">
+    <div class="sup-head">
+      <div class="sup-hola">
+        <span class="sup-hola-hi">Hola,</span>
+        <span class="sup-hola-name" id="sup-username">–</span>
+      </div>
       <span class="periodo-pill">
-        Período
         <select id="sup-periodo"></select>
       </span>
     </div>
@@ -429,11 +447,7 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
   </div>
   <div class="scan-bar" id="scan-bar-adjust">
     <button class="scan-side" id="scan-retry" style="text-align:left">Otra foto</button>
-    <div class="mode-toggle">
-      <button data-m="gris" class="on" id="m-gris">Gris</button>
-      <button data-m="bn" id="m-bn">B/N</button>
-      <button data-m="color" id="m-color">Color</button>
-    </div>
+    <div style="flex:1"></div>
     <button class="btn" id="scan-confirm" style="width:auto;padding:12px 18px">Procesar</button>
   </div>
 </section>
@@ -645,7 +659,7 @@ function enterApp(){
   const u=session.user;
   $('#tb-avatar').textContent = (u.nombre||'?').trim()[0].toUpperCase();
   $('#tb-username').textContent = u.nombre || '';
-  $('#tb-sub').textContent = u.rol==='admin' ? 'Administración' : (u.local||'Supervisor');
+  $('#tb-sub').textContent = u.rol==='admin' ? 'Panel de administración' : (u.local||'Supervisor');
   loadLocales().then(()=>{
     if(u.rol==='admin'){ initAdmin(); }
     else { initSupervisor(); }
@@ -661,6 +675,7 @@ async function loadLocales(){
    ======================================================================= */
 function initSupervisor(){
   $('#tb-title').textContent = 'Mis viáticos';
+  $('#sup-username').textContent = session.user.nombre || '';
   $('#sup-view').classList.remove('hidden');
   $('#adm-view').classList.add('hidden');
   $('#fab-scan').classList.remove('hidden');
@@ -717,7 +732,7 @@ $('#fab-scan').addEventListener('click', abrirPicker);
    El scanner solo se ocupa del ajuste de esquinas en adelante.
    ======================================================================= */
 const C=$('#scan-canvas'), stage=$('#scan-stage');
-let rawImg=null, corners=null, filterMode='gris';
+let rawImg=null, corners=null, filterMode='bn';   // siempre B/N (look scanner)
 
 // Dispara el selector nativo. Reseteamos value para que elegir la misma foto
 // dos veces seguidas vuelva a disparar el evento 'change'.
@@ -865,13 +880,7 @@ function drawOutline(){
   ctx.closePath(); ctx.fill(); ctx.stroke();
 }
 
-/* modos de filtro */
-['gris','bn','color'].forEach(m=>{
-  $('#m-'+m).addEventListener('click',()=>{
-    filterMode=m;
-    ['gris','bn','color'].forEach(x=>$('#m-'+x).classList.toggle('on',x===m));
-  });
-});
+/* Filtro fijo: B/N (umbral adaptativo, look scanner). El selector se sacó. */
 
 /* ---- Homografía: warp del cuadrilátero a rectángulo ---- */
 function solve8(A,b){ // Gauss para sistema 8x8
@@ -1178,7 +1187,7 @@ function parseNum(v){
 let admVista='detalle', admData=null, admSupervisorFiltro='', ADMIN_USUARIOS=[];
 let admPollId=null, admVisHandler=null;
 function initAdmin(){
-  $('#tb-title').textContent='Panel de administración';
+  $('#tb-title').textContent='Viáticos';
   $('#adm-view').classList.remove('hidden');
   $('#sup-view').classList.add('hidden');
   $('#fab-scan').classList.add('hidden');
