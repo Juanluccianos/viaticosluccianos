@@ -551,9 +551,8 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
       <div><label>Nombre y apellido</label><input id="nu-nombre" placeholder="Pedro Gómez"></div>
       <div><label>Usuario</label><input id="nu-usuario" placeholder="pgomez" autocapitalize="none"></div>
       <div><label>Contraseña</label><input id="nu-password" type="text" placeholder="clave inicial"></div>
-      <div><label>Rol</label><select id="nu-rol"><option value="supervisor">Supervisor</option><option value="admin">Administrador</option></select></div>
       <div><label>Local habitual (opcional)</label><select id="nu-local"><option value="">—</option></select></div>
-      <div class="full"><button class="btn" id="nu-crear" style="width:auto;padding:10px 18px">+ Agregar usuario</button></div>
+      <div class="full"><button class="btn" id="nu-crear" style="width:auto;padding:10px 18px">+ Agregar supervisor</button></div>
     </div>
 
     <div class="panel" id="usr-list"></div>
@@ -1599,20 +1598,21 @@ async function loadUsuarios(){
   box.innerHTML='<div class="center-load"><div class="spin"></div>Cargando…</div>';
   try{
     const {usuarios} = await api('/api/admin/usuarios');
+    const sups = usuarios.filter(u=>u.rol==='supervisor');
     const yo = session.user.id;
-    box.innerHTML = usuarios.map(u=>`
+    box.innerHTML = sups.map(u=>`
       <div class="usr-row ${u.activo?'':'usr-off'}">
         <div class="usr-av">${(u.nombre||'?')[0].toUpperCase()}</div>
         <div class="usr-main">
-          <div class="usr-name">${esc(u.nombre)} ${u.rol==='admin'?'<span class="pill-admin">admin</span>':''} ${u.activo?'':'<span class="pill-inactivo">Inactivo</span>'}</div>
+          <div class="usr-name">${esc(u.nombre)} ${u.activo?'':'<span class="pill-inactivo">Inactivo</span>'}</div>
           <div class="usr-meta">@${esc(u.usuario)}${u.local? ' · '+esc(u.local):''}</div>
         </div>
         <div class="usr-actions">
           <button class="mini" data-act="clave" data-id="${u.id}" data-nombre="${esc(u.nombre)}">Clave</button>
-          ${u.rol!=='admin' ? `<button class="mini ${u.activo?'no':'ok'}" data-act="toggle" data-id="${u.id}" data-activo="${u.activo?0:1}">${u.activo?'Desactivar':'Activar'}</button>` : ''}
-          ${String(u.id)!==String(yo) ? `<button class="mini danger" data-act="borrar" data-id="${u.id}" data-nombre="${esc(u.nombre)}">Borrar</button>` : ''}
+          <button class="mini ${u.activo?'no':'ok'}" data-act="toggle" data-id="${u.id}" data-activo="${u.activo?0:1}">${u.activo?'Desactivar':'Activar'}</button>
+          <button class="mini danger" data-act="borrar" data-id="${u.id}" data-nombre="${esc(u.nombre)}">Borrar</button>
         </div>
-      </div>`).join('') || '<div class="empty" style="padding:24px"><p>Sin usuarios todavía.</p></div>';
+      </div>`).join('') || '<div class="empty" style="padding:24px"><p>Sin supervisores todavía.</p></div>';
     box.querySelectorAll('button[data-act]').forEach(b=>b.onclick=()=>accionUsuario(b));
   }catch(ex){ box.innerHTML=`<div class="empty"><p>${ex.message}</p></div>`; }
 }
@@ -1638,13 +1638,13 @@ async function accionUsuario(b){
 }
 $('#nu-crear').addEventListener('click', async ()=>{
   const nombre=$('#nu-nombre').value.trim(), usuario=$('#nu-usuario').value.trim(),
-        password=$('#nu-password').value, local_id=$('#nu-local').value, rol=$('#nu-rol').value;
+        password=$('#nu-password').value, local_id=$('#nu-local').value;
   if(!nombre||!usuario||!password){ toast('Completá nombre, usuario y contraseña'); return; }
   const btn=$('#nu-crear'); btn.disabled=true;
   try{
-    await api('/api/admin/usuarios',{method:'POST',body:{nombre,usuario,password,rol,local_id: local_id||null}});
-    $('#nu-nombre').value=''; $('#nu-usuario').value=''; $('#nu-password').value=''; $('#nu-local').value=''; $('#nu-rol').value='supervisor';
-    toast(rol==='admin'?'Administrador agregado ✓':'Supervisor agregado ✓'); loadUsuarios();
+    await api('/api/admin/usuarios',{method:'POST',body:{nombre,usuario,password,rol:'supervisor',local_id: local_id||null}});
+    $('#nu-nombre').value=''; $('#nu-usuario').value=''; $('#nu-password').value=''; $('#nu-local').value='';
+    toast('Supervisor agregado ✓'); loadUsuarios();
   }catch(ex){ toast('Error: '+ex.message); }
   finally{ btn.disabled=false; }
 });
