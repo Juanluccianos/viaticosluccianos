@@ -373,13 +373,13 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
   border-radius:9px;background:var(--crema)}
 
 /* selector de modo de rendición (segmentado Locales / Fondo fijo) */
-.seg{display:flex;gap:6px;background:var(--crema);border:1.5px solid var(--line);
+.modo-seg{display:flex;gap:6px;background:var(--crema);border:1.5px solid var(--line);
   border-radius:9px;padding:3px}
-.seg-opt{flex:1;margin:0;cursor:pointer}
-.seg-opt input{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
-.seg-opt span{display:block;text-align:center;padding:7px 6px;border-radius:7px;
+.modo-opt{flex:1;margin:0;cursor:pointer}
+.modo-opt input{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
+.modo-opt span{display:block;text-align:center;padding:7px 6px;border-radius:7px;
   font-size:13px;font-weight:600;color:var(--ink-soft);transition:.12s}
-.seg-opt input:checked + span{background:var(--accent);color:#fff}
+.modo-opt input:checked + span{background:var(--accent);color:#fff}
 /* nota de rendición al fondo fijo (reemplaza al combo de locales) */
 .ff-note{display:flex;align-items:center;gap:8px;height:46px;padding:0 12px;
   border:1.5px dashed var(--line);border-radius:10px;background:var(--paper-2);
@@ -637,9 +637,9 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
       <div><label>Usuario</label><input id="nu-usuario" placeholder="pgomez" autocapitalize="none"></div>
       <div><label>Contraseña</label><input id="nu-password" type="text" placeholder="clave inicial"></div>
       <div><label>Modo de rendición</label>
-        <div class="seg" id="nu-modo">
-          <label class="seg-opt"><input type="radio" name="numodo" value="locales" checked><span>Locales</span></label>
-          <label class="seg-opt"><input type="radio" name="numodo" value="fondo_fijo"><span>Fondo fijo</span></label>
+        <div class="modo-seg" id="nu-modo">
+          <label class="modo-opt"><input type="radio" name="numodo" value="locales" checked><span>Locales</span></label>
+          <label class="modo-opt"><input type="radio" name="numodo" value="fondo_fijo"><span>Fondo fijo</span></label>
         </div>
       </div>
       <div class="full"><button class="btn" id="nu-crear" style="width:auto;padding:10px 18px">+ Agregar supervisor</button></div>
