@@ -372,6 +372,19 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
 .usr-form input,.usr-form select{width:100%;padding:9px 11px;border:1.5px solid var(--line);
   border-radius:9px;background:var(--crema)}
 
+/* selector de modo de rendición (segmentado Locales / Fondo fijo) */
+.seg{display:flex;gap:6px;background:var(--crema);border:1.5px solid var(--line);
+  border-radius:9px;padding:3px}
+.seg-opt{flex:1;margin:0;cursor:pointer}
+.seg-opt input{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
+.seg-opt span{display:block;text-align:center;padding:7px 6px;border-radius:7px;
+  font-size:13px;font-weight:600;color:var(--ink-soft);transition:.12s}
+.seg-opt input:checked + span{background:var(--accent);color:#fff}
+/* nota de rendición al fondo fijo (reemplaza al combo de locales) */
+.ff-note{display:flex;align-items:center;gap:8px;height:46px;padding:0 12px;
+  border:1.5px dashed var(--line);border-radius:10px;background:var(--paper-2);
+  font-size:14px;color:var(--ink-soft)}
+
 /* toast */
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:100px;z-index:300;
   background:var(--ink);color:var(--crema);padding:12px 20px;border-radius:12px;
@@ -561,13 +574,17 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
     </div>
     <div class="review-field"><label>Total</label><input id="r-total" inputmode="decimal" style="font-weight:600"></div>
     <div id="r-check" class="r-check"></div>
-    <div class="review-field">
+    <div class="review-field" id="r-local-field">
       <label>Local donde se rinde</label>
       <div class="combo" id="local-combo">
         <input id="r-local-search" placeholder="Buscar local…" autocomplete="off">
         <input type="hidden" id="r-local-id">
         <div class="combo-list hidden" id="local-list"></div>
       </div>
+    </div>
+    <div class="review-field hidden" id="r-fondofijo-note">
+      <label>Rendición</label>
+      <div class="ff-note">Se rinde siempre al <b style="margin-left:4px">fondo fijo</b></div>
     </div>
     <div class="review-field">
       <label>Fecha de rendición</label>
@@ -619,7 +636,12 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
       <div><label>Nombre y apellido</label><input id="nu-nombre" placeholder="Pedro Gómez"></div>
       <div><label>Usuario</label><input id="nu-usuario" placeholder="pgomez" autocapitalize="none"></div>
       <div><label>Contraseña</label><input id="nu-password" type="text" placeholder="clave inicial"></div>
-      <div><label>Local habitual (opcional)</label><select id="nu-local"><option value="">—</option></select></div>
+      <div><label>Modo de rendición</label>
+        <div class="seg" id="nu-modo">
+          <label class="seg-opt"><input type="radio" name="numodo" value="locales" checked><span>Locales</span></label>
+          <label class="seg-opt"><input type="radio" name="numodo" value="fondo_fijo"><span>Fondo fijo</span></label>
+        </div>
+      </div>
       <div class="full"><button class="btn" id="nu-crear" style="width:auto;padding:10px 18px">+ Agregar supervisor</button></div>
     </div>
 
@@ -768,7 +790,7 @@ function enterApp(){
   const u=session.user;
   $('#tb-avatar').textContent = (u.nombre||'?').trim()[0].toUpperCase();
   $('#tb-username').textContent = u.nombre || '';
-  $('#tb-sub').textContent = u.rol==='admin' ? 'Panel de administración' : (u.local||'Supervisor');
+  $('#tb-sub').textContent = u.rol==='admin' ? 'Panel de administración' : (u.modo_rendicion==='fondo_fijo' ? 'Fondo fijo' : 'Supervisor');
   loadLocales().then(()=>{
     if(u.rol==='admin'){ initAdmin(); }
     else { initSupervisor(); }
@@ -1154,8 +1176,22 @@ function blobToB64(blob){
    ======================================================================= */
 let editandoGastoId = null; // null = creando uno nuevo; si tiene valor, estamos editando
 
+/* El modo del supervisor (locales / fondo_fijo) lo define el admin al crearlo y viene
+   en la sesión. Si el back todavía no lo manda, se asume 'locales' (comportamiento previo). */
+function esFondoFijo(){ return session?.user?.modo_rendicion === 'fondo_fijo'; }
+
+/* Muestra el combo de locales o la nota de fondo fijo según el modo del supervisor.
+   La imputación real la fuerza el worker según el usuario autenticado; acá solo es UI. */
+function aplicarModoLocalReview(){
+  const ff = esFondoFijo();
+  $('#r-local-field').classList.toggle('hidden', ff);
+  $('#r-fondofijo-note').classList.toggle('hidden', !ff);
+  if(ff){ $('#r-local-id').value=''; $('#r-local-search').value=''; }
+}
+
 function openReview(loading){
   resetReviewModoCreacion();
+  aplicarModoLocalReview();
   fillCategorias($('#r-categoria'));
   $('#review-bg').classList.remove('hidden');
   if(loading){
@@ -1226,6 +1262,7 @@ function fillReview(d){
 function abrirEdicionGasto(g){
   editandoGastoId = g.id;
   fillCategorias($('#r-categoria'));
+  aplicarModoLocalReview();
   $('#review-title').textContent = 'Editar viático';
   $('#review-note').innerHTML = 'Corregí lo que haga falta. Va a quedar registrado que lo editaste.';
   $('#review-img').src = imgUrl(g.imagen_key);
@@ -1275,7 +1312,7 @@ function setupLocalCombo(){
   const input=$('#r-local-search'), hidden=$('#r-local-id'), list=$('#local-list');
   function render(filtro){
     const f=(filtro||'').toLowerCase();
-    const items = LOCALES.filter(l=>l.nombre.toLowerCase().includes(f));
+    const items = LOCALES.filter(l=>!l.es_fondo_fijo && l.nombre.toLowerCase().includes(f));
     if(!items.length){ list.innerHTML='<div class="combo-empty">Sin resultados</div>'; }
     else{
       list.innerHTML = items.map(l=>`<div class="combo-item" data-id="${l.id}">${esc(l.nombre)}</div>`).join('');
@@ -1298,7 +1335,7 @@ setupLocalCombo();
 
 $('#review-cancel').addEventListener('click', ()=>{ $('#review-bg').classList.add('hidden'); capturedBlob=null; editandoGastoId=null; });
 $('#review-save').addEventListener('click', async ()=>{
-  if(!$('#r-local-id').value){ toast('Elegí el local donde se rinde el gasto'); return; }
+  if(!esFondoFijo() && !$('#r-local-id').value){ toast('Elegí el local donde se rinde el gasto'); return; }
   if(!$('#r-fecha-rendicion').value){ toast('Falta la fecha de rendición'); return; }
   if(!revisarSuma()){ toast('Los montos no cuadran: neto + impuestos debe dar el total'); return; }
   const btn=$('#review-save'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>Guardando…';
@@ -1306,7 +1343,7 @@ $('#review-save').addEventListener('click', async ()=>{
     razon_social:$('#r-razon').value.trim(),
     fecha:$('#r-fecha').value,
     fecha_rendicion:$('#r-fecha-rendicion').value,
-    local_id:$('#r-local-id').value,
+    local_id: esFondoFijo() ? null : $('#r-local-id').value,
     cuit:$('#r-cuit').value.trim(),
     tipo_comprobante:$('#r-tipo').value,
     categoria:$('#r-categoria').value,
@@ -1790,7 +1827,7 @@ function fillLocalesSelect(sel){
   sel.innerHTML='<option value="">—</option>'+LOCALES.map(l=>`<option value="${l.id}">${esc(l.nombre)}</option>`).join('');
 }
 async function openUsuarios(){
-  fillLocalesSelect($('#nu-local'));
+  const rbLoc=document.querySelector('input[name="numodo"][value="locales"]'); if(rbLoc) rbLoc.checked=true;
   $('#usr-bg').classList.remove('hidden');
   await loadUsuarios();
 }
@@ -1808,7 +1845,7 @@ async function loadUsuarios(){
         <div class="usr-av">${(u.nombre||'?')[0].toUpperCase()}</div>
         <div class="usr-main">
           <div class="usr-name">${esc(u.nombre)} ${u.activo?'':'<span class="pill-inactivo">Inactivo</span>'}</div>
-          <div class="usr-meta">@${esc(u.usuario)}${u.local? ' · '+esc(u.local):''}</div>
+          <div class="usr-meta">@${esc(u.usuario)} · ${u.modo_rendicion==='fondo_fijo'?'Fondo fijo':'Locales'}</div>
         </div>
         <div class="usr-actions">
           <button class="mini" data-act="clave" data-id="${u.id}" data-nombre="${esc(u.nombre)}">Clave</button>
@@ -1841,12 +1878,14 @@ async function accionUsuario(b){
 }
 $('#nu-crear').addEventListener('click', async ()=>{
   const nombre=$('#nu-nombre').value.trim(), usuario=$('#nu-usuario').value.trim(),
-        password=$('#nu-password').value, local_id=$('#nu-local').value;
+        password=$('#nu-password').value;
+  const modo=(document.querySelector('input[name="numodo"]:checked')||{}).value || 'locales';
   if(!nombre||!usuario||!password){ toast('Completá nombre, usuario y contraseña'); return; }
   const btn=$('#nu-crear'); btn.disabled=true;
   try{
-    await api('/api/admin/usuarios',{method:'POST',body:{nombre,usuario,password,rol:'supervisor',local_id: local_id||null}});
-    $('#nu-nombre').value=''; $('#nu-usuario').value=''; $('#nu-password').value=''; $('#nu-local').value='';
+    await api('/api/admin/usuarios',{method:'POST',body:{nombre,usuario,password,rol:'supervisor',modo_rendicion:modo}});
+    $('#nu-nombre').value=''; $('#nu-usuario').value=''; $('#nu-password').value='';
+    const rbLoc=document.querySelector('input[name="numodo"][value="locales"]'); if(rbLoc) rbLoc.checked=true;
     toast('Supervisor agregado ✓'); loadUsuarios();
   }catch(ex){ toast('Error: '+ex.message); }
   finally{ btn.disabled=false; }
