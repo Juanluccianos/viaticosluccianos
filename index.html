@@ -778,6 +778,8 @@ $('#login-form').addEventListener('submit', async e=>{
 });
 function doLogout(){
   if(admPollId){ clearInterval(admPollId); admPollId=null; }
+  if(supPollId){ clearInterval(supPollId); supPollId=null; }
+  if(supVisHandler){ document.removeEventListener('visibilitychange', supVisHandler); supVisHandler=null; }
   session=null; localStorage.removeItem('viaticos_session');
   $('#app').classList.add('hidden'); $('#login').classList.remove('hidden');
   $('#p').value='';
@@ -804,6 +806,18 @@ async function loadLocales(){
 /* =======================================================================
    SUPERVISOR
    ======================================================================= */
+/* Latido de sesión: si el admin desactiva o borra al supervisor, el back devuelve
+   401 (revalida el usuario en cada request) y api() dispara doLogout() solo. Pegamos
+   a /api/me cada 45s y al volver a primer plano, así no depende de que el tipo toque
+   algo para que se le cierre la sesión. Sólo mientras la pantalla está visible: no
+   tiene sentido gastar requests con el celu bloqueado, y el chequeo cae justo cuando
+   vuelve a abrir la app, que es cuando importa sacarlo. */
+let supPollId=null, supVisHandler=null;
+async function latidoSupervisor(){
+  if(session?.user?.rol!=='supervisor' || !session?.token) return;
+  try{ await api('/api/me'); }
+  catch{ /* si fue 401, api() ya hizo doLogout(); cualquier otro error lo ignoramos */ }
+}
 function initSupervisor(){
   $('#tb-title').textContent = 'Mis viáticos';
   $('#sup-username').textContent = session.user.nombre || '';
@@ -814,6 +828,11 @@ function initSupervisor(){
   $('#sup-periodo').value = periodoActual();
   $('#sup-periodo').onchange = loadSupGastos;
   loadSupGastos();
+  // Latido de sesión
+  latidoSupervisor();
+  supPollId = setInterval(()=>{ if(document.visibilityState==='visible') latidoSupervisor(); }, 45000);
+  supVisHandler = ()=>{ if(document.visibilityState==='visible') latidoSupervisor(); };
+  document.addEventListener('visibilitychange', supVisHandler);
 }
 async function loadSupGastos(){
   const p=$('#sup-periodo').value;
