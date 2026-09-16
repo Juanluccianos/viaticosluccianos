@@ -226,6 +226,9 @@ input,select{font-family:inherit;font-size:16px}
   border:1.5px solid var(--line);border-radius:10px;background:var(--crema);color:var(--ink);
   line-height:46px;box-sizing:border-box}
 .review-field input[type="date"]{-webkit-appearance:none;appearance:none}
+.review-field textarea{width:100%;min-height:80px;padding:10px 12px;border:1.5px solid var(--line);
+  border-radius:10px;background:var(--crema);color:var(--ink);line-height:1.4;box-sizing:border-box;
+  font-family:inherit;font-size:inherit;resize:vertical}
 .review-field{margin-bottom:12px}
 .ai-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
   color:var(--ink);background:#e6e6e8;padding:3px 9px;border-radius:999px}
@@ -589,6 +592,10 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
     <div class="review-field">
       <label>Fecha de rendición</label>
       <input id="r-fecha-rendicion" type="date">
+    </div>
+    <div class="review-field">
+      <label>Observaciones <span style="font-weight:400;color:var(--ink-soft)">(opcional · lo ve administración)</span></label>
+      <textarea id="r-observaciones" rows="3" placeholder="Aclaración para administración sobre este gasto…" autocomplete="off"></textarea>
     </div>
     <div class="sheet-actions">
       <button class="btn btn-ghost" id="review-cancel">Descartar</button>
@@ -1214,7 +1221,7 @@ function openReview(loading){
   fillCategorias($('#r-categoria'));
   $('#review-bg').classList.remove('hidden');
   if(loading){
-    ['r-razon','r-cuit','r-neto','r-iva','r-percep','r-internos','r-total'].forEach(id=>$('#'+id).value='');
+    ['r-razon','r-cuit','r-neto','r-iva','r-percep','r-internos','r-total','r-observaciones'].forEach(id=>$('#'+id).value='');
     revisarSuma();
     $('#r-fecha').value=new Date().toISOString().slice(0,10);
     $('#r-fecha-rendicion').value=new Date().toISOString().slice(0,10);
@@ -1299,6 +1306,7 @@ function abrirEdicionGasto(g){
   revisarSuma();
   $('#r-local-id').value = g.local_id||'';
   $('#r-local-search').value = g.local||'';
+  $('#r-observaciones').value = g.observaciones||'';
   $('#review-save').disabled=false; $('#review-save').textContent='Guardar cambios';
   $('#review-delete').classList.remove('hidden');
   $('#review-bg').classList.remove('hidden');
@@ -1371,6 +1379,7 @@ $('#review-save').addEventListener('click', async ()=>{
     percepciones:parseNum($('#r-percep').value),
     impuestos_internos:parseNum($('#r-internos').value),
     total:parseNum($('#r-total').value),
+    observaciones:$('#r-observaciones').value.trim(),
   };
   try{
     if(editandoGastoId){
@@ -1820,6 +1829,7 @@ function abrirDetalleAdmin(g){
       ${detCell('Fecha de rendición', detFecha(g.fecha_rendicion))}
       ${detCell('CUIT', cuit)}
       ${detCell('Tipo de comprobante', esc(g.tipo_comprobante||'—'))}
+      ${g.observaciones ? detCell('Observaciones del supervisor', esc(g.observaciones).replace(/\n/g,'<br>'), true) : ''}
     </div>
     <div class="det-montos">
       <div class="det-mrow"><span class="det-mk">Neto</span><span class="det-mv">${fmtMoney(g.neto)}</span></div>
