@@ -383,10 +383,25 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
 .modo-opt span{display:block;text-align:center;padding:7px 6px;border-radius:7px;
   font-size:13px;font-weight:600;color:var(--ink-soft);transition:.12s}
 .modo-opt input:checked + span{background:var(--accent);color:#fff}
-/* nota de rendición al fondo fijo (reemplaza al combo de locales) */
+/* nota de rendición al fondo fijo / tarjeta (reemplaza al combo de locales) */
 .ff-note{display:flex;align-items:center;gap:8px;height:46px;padding:0 12px;
   border:1.5px dashed var(--line);border-radius:10px;background:var(--paper-2);
   font-size:14px;color:var(--ink-soft)}
+
+/* capacidades de rendición del usuario (checkboxes seleccionables: se puede
+   marcar más de una — locales, fondo fijo y/o tarjeta corporativa) */
+.cap-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.cap-opt{margin:0;cursor:pointer}
+.cap-opt input{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
+.cap-opt span{display:block;text-align:center;padding:8px 6px;border:1.5px solid var(--line);
+  border-radius:9px;background:var(--crema);font-size:12.5px;font-weight:600;
+  color:var(--ink-soft);transition:.12s;line-height:1.15}
+.cap-opt input:checked + span{background:var(--accent);color:#fff;border-color:var(--accent)}
+.cap-opt input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
+/* fila de usuario clickeable (abre el detalle para editar) */
+.usr-row.clickable{cursor:pointer}
+.usr-row.clickable:hover{background:var(--paper-2)}
+.usr-chev{flex:none;color:var(--ink-soft);opacity:.5;font-size:18px;padding-left:4px}
 
 /* toast */
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:100px;z-index:300;
@@ -577,6 +592,10 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
     </div>
     <div class="review-field"><label>Total</label><input id="r-total" inputmode="decimal" style="font-weight:600"></div>
     <div id="r-check" class="r-check"></div>
+    <div class="review-field hidden" id="r-destino-field">
+      <label>¿Cómo se rinde este gasto?</label>
+      <div class="modo-seg" id="r-destino-seg"></div>
+    </div>
     <div class="review-field" id="r-local-field">
       <label>Local donde se rinde</label>
       <div class="combo" id="local-combo">
@@ -587,7 +606,7 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
     </div>
     <div class="review-field hidden" id="r-fondofijo-note">
       <label>Rendición</label>
-      <div class="ff-note">Se rinde siempre al <b style="margin-left:4px">fondo fijo</b></div>
+      <div class="ff-note">Se rinde a <b style="margin-left:4px" id="r-rend-note-txt">fondo fijo</b></div>
     </div>
     <div class="review-field">
       <label>Fecha de rendición</label>
@@ -643,16 +662,50 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
       <div><label>Nombre y apellido</label><input id="nu-nombre" placeholder="Pedro Gómez"></div>
       <div><label>Usuario</label><input id="nu-usuario" placeholder="pgomez" autocapitalize="none"></div>
       <div><label>Contraseña</label><input id="nu-password" type="text" placeholder="clave inicial"></div>
-      <div><label>Modo de rendición</label>
-        <div class="modo-seg" id="nu-modo">
-          <label class="modo-opt"><input type="radio" name="numodo" value="locales" checked><span>Locales</span></label>
-          <label class="modo-opt"><input type="radio" name="numodo" value="fondo_fijo"><span>Fondo fijo</span></label>
+      <div class="full"><label>Rinde por <span style="font-weight:400;color:var(--ink-soft)">(marcá todo lo que corresponda)</span></label>
+        <div class="cap-grid" id="nu-caps">
+          <label class="cap-opt"><input type="checkbox" id="nu-cap-locales" checked><span>Locales</span></label>
+          <label class="cap-opt"><input type="checkbox" id="nu-cap-fondo"><span>Fondo fijo</span></label>
+          <label class="cap-opt"><input type="checkbox" id="nu-cap-tarjeta"><span>Tarjeta corp.</span></label>
         </div>
       </div>
       <div class="full"><button class="btn" id="nu-crear" style="width:auto;padding:10px 18px">+ Agregar supervisor</button></div>
     </div>
 
     <div class="panel" id="usr-list"></div>
+  </div>
+</div>
+
+<!-- Sheet DETALLE + EDICIÓN de un usuario (se abre al tocar una fila) -->
+<div class="sheet-bg centrado hidden" id="usr-edit-bg">
+  <div class="sheet" id="usr-edit-sheet" style="max-width:560px">
+    <div class="sheet-grab"></div>
+    <div class="det-head">
+      <div><span class="det-tag" id="ue-tag">Supervisor</span><h2 id="ue-title">Editar usuario</h2></div>
+      <button class="det-x" id="ue-close" aria-label="Cerrar">✕</button>
+    </div>
+    <p class="review-note">Editá los datos del supervisor y qué puede rendir. Los gastos ya cargados no se tocan.</p>
+    <div class="usr-form" style="margin-bottom:12px">
+      <div><label>Nombre y apellido</label><input id="ue-nombre" placeholder="Pedro Gómez"></div>
+      <div><label>Usuario</label><input id="ue-usuario" placeholder="pgomez" autocapitalize="none"></div>
+      <div class="full"><label>Nueva contraseña <span style="font-weight:400;color:var(--ink-soft)">(dejá en blanco para no cambiarla)</span></label>
+        <input id="ue-password" type="text" placeholder="••••" autocomplete="new-password"></div>
+      <div class="full"><label>Rinde por <span style="font-weight:400;color:var(--ink-soft)">(marcá todo lo que corresponda)</span></label>
+        <div class="cap-grid" id="ue-caps">
+          <label class="cap-opt"><input type="checkbox" id="ue-cap-locales"><span>Locales</span></label>
+          <label class="cap-opt"><input type="checkbox" id="ue-cap-fondo"><span>Fondo fijo</span></label>
+          <label class="cap-opt"><input type="checkbox" id="ue-cap-tarjeta"><span>Tarjeta corp.</span></label>
+        </div>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" id="ue-cancel">Cancelar</button>
+      <button class="btn" id="ue-save">Guardar cambios</button>
+    </div>
+    <div class="act-row" style="justify-content:space-between;margin-top:12px">
+      <button class="mini" id="ue-toggle">Desactivar</button>
+      <button class="mini danger" id="ue-borrar">Borrar usuario</button>
+    </div>
   </div>
 </div>
 
@@ -799,7 +852,7 @@ function enterApp(){
   const u=session.user;
   $('#tb-avatar').textContent = (u.nombre||'?').trim()[0].toUpperCase();
   $('#tb-username').textContent = u.nombre || '';
-  $('#tb-sub').textContent = u.rol==='admin' ? 'Panel de administración' : (u.modo_rendicion==='fondo_fijo' ? 'Fondo fijo' : 'Supervisor');
+  $('#tb-sub').textContent = u.rol==='admin' ? 'Panel de administración' : capsSummary(u);
   loadLocales().then(()=>{
     if(u.rol==='admin'){ initAdmin(); }
     else { initSupervisor(); }
@@ -1202,22 +1255,67 @@ function blobToB64(blob){
    ======================================================================= */
 let editandoGastoId = null; // null = creando uno nuevo; si tiene valor, estamos editando
 
-/* El modo del supervisor (locales / fondo_fijo) lo define el admin al crearlo y viene
-   en la sesión. Si el back todavía no lo manda, se asume 'locales' (comportamiento previo). */
-function esFondoFijo(){ return session?.user?.modo_rendicion === 'fondo_fijo'; }
+/* ---- Capacidades de rendición del usuario ----
+   Un usuario puede rendir por una o varias vías a la vez: locales, fondo fijo
+   y/o tarjeta corporativa. El admin las define al crearlo/editarlo y vienen en la
+   sesión como flags (rinde_locales / rinde_fondo_fijo / rinde_tarjeta).
+   Compatibilidad: si el back todavía manda solo el 'modo_rendicion' viejo, lo
+   traducimos (locales -> rinde_locales; fondo_fijo -> rinde_fondo_fijo). */
+const REND_LABEL = {locales:'Locales', fondo_fijo:'Fondo fijo', tarjeta:'Tarjeta corporativa'};
+function userCaps(u){
+  u = u || {};
+  if(u.rinde_locales!=null || u.rinde_fondo_fijo!=null || u.rinde_tarjeta!=null){
+    return {locales:!!u.rinde_locales, fondo_fijo:!!u.rinde_fondo_fijo, tarjeta:!!u.rinde_tarjeta};
+  }
+  // Fallback al modelo viejo de un único modo.
+  return {locales: u.modo_rendicion!=='fondo_fijo', fondo_fijo: u.modo_rendicion==='fondo_fijo', tarjeta:false};
+}
+function capsToList(c){
+  const l=[]; if(c.locales)l.push('locales'); if(c.fondo_fijo)l.push('fondo_fijo'); if(c.tarjeta)l.push('tarjeta'); return l;
+}
+function capsSummary(u){ return capsToList(userCaps(u)).map(d=>REND_LABEL[d]).join(' · ') || '—'; }
+function destinosSupervisor(){ return capsToList(userCaps(session?.user)); }
 
-/* Muestra el combo de locales o la nota de fondo fijo según el modo del supervisor.
-   La imputación real la fuerza el worker según el usuario autenticado; acá solo es UI. */
-function aplicarModoLocalReview(){
-  const ff = esFondoFijo();
-  $('#r-local-field').classList.toggle('hidden', ff);
-  $('#r-fondofijo-note').classList.toggle('hidden', !ff);
-  if(ff){ $('#r-local-id').value=''; $('#r-local-search').value=''; }
+/* destino elegido para el gasto que se está cargando/editando */
+let destinoActual = 'locales';
+
+/* Muestra el combo de locales (destino 'locales') o la nota (fondo fijo / tarjeta).
+   La imputación real la valida el worker según el usuario autenticado; acá es UI. */
+function setDestino(d){
+  destinoActual = d;
+  const esLoc = d==='locales';
+  $('#r-local-field').classList.toggle('hidden', !esLoc);
+  $('#r-fondofijo-note').classList.toggle('hidden', esLoc);
+  if(!esLoc){
+    $('#r-local-id').value=''; $('#r-local-search').value='';
+    $('#r-rend-note-txt').textContent = d==='tarjeta' ? 'tarjeta corporativa' : 'fondo fijo';
+  }
+}
+/* Arma el selector de destino. Si el usuario rinde por una sola vía, no hay nada
+   para elegir: se aplica directo y no se muestra el selector. Si rinde por varias,
+   aparece el segmentado para que elija en cada gasto.
+   'preferido' (opcional) preselecciona un destino: se usa al editar un gasto ya
+   cargado para respetar cómo se había imputado. */
+function aplicarDestinoReview(preferido){
+  const ds = destinosSupervisor();
+  let lista = ds.length ? ds.slice() : ['locales'];
+  if(preferido && !lista.includes(preferido)) lista.unshift(preferido); // respeta el destino histórico del gasto
+  const sel = preferido && lista.includes(preferido) ? preferido : lista[0];
+  const seg = $('#r-destino-seg');
+  if(lista.length>1){
+    $('#r-destino-field').classList.remove('hidden');
+    seg.innerHTML = lista.map(d=>`<label class="modo-opt"><input type="radio" name="rdest" value="${d}" ${d===sel?'checked':''}><span>${REND_LABEL[d]}</span></label>`).join('');
+    seg.querySelectorAll('input[name="rdest"]').forEach(r=>r.onchange=()=>setDestino(r.value));
+  } else {
+    $('#r-destino-field').classList.add('hidden');
+    seg.innerHTML='';
+  }
+  setDestino(sel);
 }
 
 function openReview(loading){
   resetReviewModoCreacion();
-  aplicarModoLocalReview();
+  aplicarDestinoReview();
   fillCategorias($('#r-categoria'));
   $('#review-bg').classList.remove('hidden');
   if(loading){
@@ -1288,7 +1386,6 @@ function fillReview(d){
 function abrirEdicionGasto(g){
   editandoGastoId = g.id;
   fillCategorias($('#r-categoria'));
-  aplicarModoLocalReview();
   $('#review-title').textContent = 'Editar viático';
   $('#review-note').innerHTML = 'Corregí lo que haga falta. Va a quedar registrado que lo editaste.';
   $('#review-img').src = imgUrl(g.imagen_key);
@@ -1304,6 +1401,8 @@ function abrirEdicionGasto(g){
   $('#r-internos').value = numToEs(g.impuestos_internos);
   $('#r-total').value = numToEs(g.total);
   revisarSuma();
+  // Respeta cómo se había imputado el gasto (tarjeta / fondo fijo / local).
+  aplicarDestinoReview(g.tipo_rendicion || ((g.local_id||g.local) ? 'locales' : 'fondo_fijo'));
   $('#r-local-id').value = g.local_id||'';
   $('#r-local-search').value = g.local||'';
   $('#r-observaciones').value = g.observaciones||'';
@@ -1339,7 +1438,7 @@ function setupLocalCombo(){
   const input=$('#r-local-search'), hidden=$('#r-local-id'), list=$('#local-list');
   function render(filtro){
     const f=(filtro||'').toLowerCase();
-    const items = LOCALES.filter(l=>!l.es_fondo_fijo && l.nombre.toLowerCase().includes(f));
+    const items = LOCALES.filter(l=>!l.es_fondo_fijo && !l.es_tarjeta && l.nombre.toLowerCase().includes(f));
     if(!items.length){ list.innerHTML='<div class="combo-empty">Sin resultados</div>'; }
     else{
       list.innerHTML = items.map(l=>`<div class="combo-item" data-id="${l.id}">${esc(l.nombre)}</div>`).join('');
@@ -1362,7 +1461,7 @@ setupLocalCombo();
 
 $('#review-cancel').addEventListener('click', ()=>{ $('#review-bg').classList.add('hidden'); capturedBlob=null; editandoGastoId=null; });
 $('#review-save').addEventListener('click', async ()=>{
-  if(!esFondoFijo() && !$('#r-local-id').value){ toast('Elegí el local donde se rinde el gasto'); return; }
+  if(destinoActual==='locales' && !$('#r-local-id').value){ toast('Elegí el local donde se rinde el gasto'); return; }
   if(!$('#r-fecha-rendicion').value){ toast('Falta la fecha de rendición'); return; }
   if(!revisarSuma()){ toast('Los montos no cuadran: neto + impuestos debe dar el total'); return; }
   const btn=$('#review-save'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>Guardando…';
@@ -1370,7 +1469,8 @@ $('#review-save').addEventListener('click', async ()=>{
     razon_social:$('#r-razon').value.trim(),
     fecha:$('#r-fecha').value,
     fecha_rendicion:$('#r-fecha-rendicion').value,
-    local_id: esFondoFijo() ? null : $('#r-local-id').value,
+    tipo_rendicion: destinoActual,
+    local_id: destinoActual==='locales' ? $('#r-local-id').value : null,
     cuit:$('#r-cuit').value.trim(),
     tipo_comprobante:$('#r-tipo').value,
     categoria:$('#r-categoria').value,
@@ -1581,7 +1681,7 @@ function renderDetalle(){
     g.map((x,i)=>`<tr class="fila-det" data-idx="${i}" style="cursor:pointer">
       <td><img class="thumb" src="${imgUrl(x.imagen_key)}" data-full="${imgUrl(x.imagen_key)}" data-fileid="${x.imagen_key}" alt="ver"></td>
       <td class="subtable-supervisor">${esc(x.supervisor)}</td>
-      <td>${esc(x.local||'—')}</td>
+      <td>${esc(rendicionLabel(x))}</td>
       <td class="hide-sm">${x.fecha_rendicion||'—'}${x.editado_en?' <span class="pill-editado">editado</span>':''}</td>
       <td>${esc(x.razon_social||'—')}<div style="font-size:11px;color:var(--ink-soft)" class="mono">${x.cuit||''}</div></td>
       <td><span class="tag-cat">${catIcon(x.categoria)} ${x.categoria}</span></td>
@@ -1811,6 +1911,15 @@ function detFecha(f){                 // fechas vienen como 'YYYY-MM-DD'; las pa
 function detCell(k,v,full){
   return `<div class="det-cell${full?' full':''}"><div class="det-k">${k}</div><div class="det-v">${v}</div></div>`;
 }
+/* Cómo se rindió un gasto, para mostrar en el panel: nombre del local si es a
+   locales; 'Fondo fijo' o 'Tarjeta corporativa' en los otros casos. Toma
+   tipo_rendicion si viene; si no, lo infiere (compatibilidad con datos viejos). */
+function rendicionLabel(g){
+  const t = g.tipo_rendicion || ((g.local||g.local_id) ? 'locales' : 'fondo_fijo');
+  if(t==='tarjeta') return 'Tarjeta corporativa';
+  if(t==='fondo_fijo') return 'Fondo fijo';
+  return g.local || 'Locales';
+}
 function abrirDetalleAdmin(g){
   if(!g) return;
   detGastoActual=g;
@@ -1824,7 +1933,7 @@ function abrirDetalleAdmin(g){
   $('#det-cuerpo').innerHTML = `
     <div class="det-grid">
       ${detCell('Supervisor', esc(g.supervisor||'—'))}
-      ${detCell('Local de rendición', esc(g.local||'—'))}
+      ${detCell('Rendición', esc(rendicionLabel(g)))}
       ${detCell('Fecha del ticket', detFecha(g.fecha))}
       ${detCell('Fecha de rendición', detFecha(g.fecha_rendicion))}
       ${detCell('CUIT', cuit)}
@@ -1855,8 +1964,14 @@ $('#det-img').addEventListener('click', ()=>{ if(detGastoActual) openLightbox(im
 function fillLocalesSelect(sel){
   sel.innerHTML='<option value="">—</option>'+LOCALES.map(l=>`<option value="${l.id}">${esc(l.nombre)}</option>`).join('');
 }
+let USUARIOS = [];   // supervisores cargados, para abrir el detalle sin re-pedir
+
+/* Al abrir el ABM, reseteo el alta a su estado por defecto (solo "Locales"). */
+function resetAltaUsuario(){
+  $('#nu-cap-locales').checked=true; $('#nu-cap-fondo').checked=false; $('#nu-cap-tarjeta').checked=false;
+}
 async function openUsuarios(){
-  const rbLoc=document.querySelector('input[name="numodo"][value="locales"]'); if(rbLoc) rbLoc.checked=true;
+  resetAltaUsuario();
   $('#usr-bg').classList.remove('hidden');
   await loadUsuarios();
 }
@@ -1867,54 +1982,99 @@ async function loadUsuarios(){
   box.innerHTML='<div class="center-load"><div class="spin"></div>Cargando…</div>';
   try{
     const {usuarios} = await api('/api/admin/usuarios');
-    const sups = usuarios.filter(u=>u.rol==='supervisor');
-    const yo = session.user.id;
-    box.innerHTML = sups.map(u=>`
-      <div class="usr-row ${u.activo?'':'usr-off'}">
+    USUARIOS = usuarios.filter(u=>u.rol==='supervisor');
+    box.innerHTML = USUARIOS.map((u,i)=>`
+      <div class="usr-row clickable ${u.activo?'':'usr-off'}" data-idx="${i}">
         <div class="usr-av">${(u.nombre||'?')[0].toUpperCase()}</div>
         <div class="usr-main">
           <div class="usr-name">${esc(u.nombre)} ${u.activo?'':'<span class="pill-inactivo">Inactivo</span>'}</div>
-          <div class="usr-meta">@${esc(u.usuario)} · ${u.modo_rendicion==='fondo_fijo'?'Fondo fijo':'Locales'}</div>
+          <div class="usr-meta">@${esc(u.usuario)} · ${esc(capsSummary(u))}</div>
         </div>
-        <div class="usr-actions">
-          <button class="mini" data-act="clave" data-id="${u.id}" data-nombre="${esc(u.nombre)}">Clave</button>
-          <button class="mini ${u.activo?'no':'ok'}" data-act="toggle" data-id="${u.id}" data-activo="${u.activo?0:1}">${u.activo?'Desactivar':'Activar'}</button>
-          <button class="mini danger" data-act="borrar" data-id="${u.id}" data-nombre="${esc(u.nombre)}">Borrar</button>
-        </div>
+        <span class="usr-chev">›</span>
       </div>`).join('') || '<div class="empty" style="padding:24px"><p>Sin supervisores todavía.</p></div>';
-    box.querySelectorAll('button[data-act]').forEach(b=>b.onclick=()=>accionUsuario(b));
+    box.querySelectorAll('.usr-row.clickable').forEach(r=>r.onclick=()=>openEditUsuario(USUARIOS[+r.dataset.idx]));
   }catch(ex){ box.innerHTML=`<div class="empty"><p>${ex.message}</p></div>`; }
 }
-async function accionUsuario(b){
-  const id=b.dataset.id, nombre=b.dataset.nombre||'';
-  try{
-    if(b.dataset.act==='toggle'){
-      await api('/api/admin/usuarios/'+id, {method:'PATCH', body:{activo: b.dataset.activo==='1'}});
-      toast('Usuario actualizado');
-    }else if(b.dataset.act==='clave'){
-      const nueva=prompt(`Nueva contraseña para ${nombre}:`);
-      if(nueva===null) return;
-      if(nueva.trim().length<4){ toast('La contraseña debe tener al menos 4 caracteres'); return; }
-      await api('/api/admin/usuarios/'+id, {method:'PATCH', body:{password:nueva.trim()}});
-      toast('Contraseña actualizada ✓');
-    }else if(b.dataset.act==='borrar'){
-      if(!confirm(`¿Borrar a ${nombre}? No se puede deshacer.`)) return;
-      await api('/api/admin/usuarios/'+id, {method:'DELETE'});
-      toast('Usuario borrado');
-    }
-    loadUsuarios();
-  }catch(ex){ toast(ex.message||'Error'); }
+
+/* ---- Detalle / edición de un usuario (se abre al tocar la fila) ---- */
+let usrEditId = null;
+function openEditUsuario(u){
+  if(!u) return;
+  usrEditId = u.id;
+  const caps = userCaps(u);
+  $('#ue-title').textContent = u.nombre || 'Usuario';
+  $('#ue-nombre').value = u.nombre || '';
+  $('#ue-usuario').value = u.usuario || '';
+  $('#ue-password').value = '';
+  $('#ue-cap-locales').checked = caps.locales;
+  $('#ue-cap-fondo').checked   = caps.fondo_fijo;
+  $('#ue-cap-tarjeta').checked = caps.tarjeta;
+  const t=$('#ue-toggle'); t.textContent = u.activo ? 'Desactivar' : 'Activar';
+  t.classList.toggle('no', !!u.activo); t.classList.toggle('ok', !u.activo);
+  t.dataset.activo = u.activo ? '0' : '1';
+  $('#usr-edit-bg').classList.remove('hidden');
 }
+function cerrarEditUsuario(){ $('#usr-edit-bg').classList.add('hidden'); usrEditId=null; }
+$('#ue-close').addEventListener('click', cerrarEditUsuario);
+$('#ue-cancel').addEventListener('click', cerrarEditUsuario);
+$('#usr-edit-bg').addEventListener('click', e=>{ if(e.target.id==='usr-edit-bg') cerrarEditUsuario(); });
+
+$('#ue-save').addEventListener('click', async ()=>{
+  if(!usrEditId) return;
+  const nombre=$('#ue-nombre').value.trim(), usuario=$('#ue-usuario').value.trim(), password=$('#ue-password').value;
+  const caps = {
+    rinde_locales:    $('#ue-cap-locales').checked ? 1 : 0,
+    rinde_fondo_fijo: $('#ue-cap-fondo').checked   ? 1 : 0,
+    rinde_tarjeta:    $('#ue-cap-tarjeta').checked ? 1 : 0,
+  };
+  if(!nombre || !usuario){ toast('Completá nombre y usuario'); return; }
+  if(!caps.rinde_locales && !caps.rinde_fondo_fijo && !caps.rinde_tarjeta){ toast('Marcá al menos una forma de rendición'); return; }
+  if(password && password.trim().length<4){ toast('La contraseña debe tener al menos 4 caracteres'); return; }
+  // 'modo_rendicion' se manda derivado para no romper backends que todavía lo esperan.
+  const modo = caps.rinde_locales ? 'locales' : (caps.rinde_fondo_fijo ? 'fondo_fijo' : 'locales');
+  const body = {nombre, usuario, modo_rendicion:modo, ...caps};
+  if(password.trim()) body.password = password.trim();
+  const btn=$('#ue-save'); btn.disabled=true;
+  try{
+    await api('/api/admin/usuarios/'+usrEditId, {method:'PATCH', body});
+    toast('Usuario actualizado ✓'); cerrarEditUsuario(); loadUsuarios();
+  }catch(ex){ toast('Error: '+ex.message); }
+  finally{ btn.disabled=false; }
+});
+$('#ue-toggle').addEventListener('click', async ()=>{
+  if(!usrEditId) return;
+  const activo = $('#ue-toggle').dataset.activo==='1';
+  try{
+    await api('/api/admin/usuarios/'+usrEditId, {method:'PATCH', body:{activo}});
+    toast('Usuario actualizado'); cerrarEditUsuario(); loadUsuarios();
+  }catch(ex){ toast(ex.message||'Error'); }
+});
+$('#ue-borrar').addEventListener('click', async ()=>{
+  if(!usrEditId) return;
+  const nombre=$('#ue-nombre').value.trim();
+  if(!confirm(`¿Borrar a ${nombre||'este usuario'}? No se puede deshacer.`)) return;
+  try{
+    await api('/api/admin/usuarios/'+usrEditId, {method:'DELETE'});
+    toast('Usuario borrado'); cerrarEditUsuario(); loadUsuarios();
+  }catch(ex){ toast(ex.message||'Error'); }
+});
+
 $('#nu-crear').addEventListener('click', async ()=>{
   const nombre=$('#nu-nombre').value.trim(), usuario=$('#nu-usuario').value.trim(),
         password=$('#nu-password').value;
-  const modo=(document.querySelector('input[name="numodo"]:checked')||{}).value || 'locales';
+  const caps = {
+    rinde_locales:    $('#nu-cap-locales').checked ? 1 : 0,
+    rinde_fondo_fijo: $('#nu-cap-fondo').checked   ? 1 : 0,
+    rinde_tarjeta:    $('#nu-cap-tarjeta').checked ? 1 : 0,
+  };
   if(!nombre||!usuario||!password){ toast('Completá nombre, usuario y contraseña'); return; }
+  if(!caps.rinde_locales && !caps.rinde_fondo_fijo && !caps.rinde_tarjeta){ toast('Marcá al menos una forma de rendición'); return; }
+  const modo = caps.rinde_locales ? 'locales' : (caps.rinde_fondo_fijo ? 'fondo_fijo' : 'locales');
   const btn=$('#nu-crear'); btn.disabled=true;
   try{
-    await api('/api/admin/usuarios',{method:'POST',body:{nombre,usuario,password,rol:'supervisor',modo_rendicion:modo}});
+    await api('/api/admin/usuarios',{method:'POST',body:{nombre,usuario,password,rol:'supervisor',modo_rendicion:modo,...caps}});
     $('#nu-nombre').value=''; $('#nu-usuario').value=''; $('#nu-password').value='';
-    const rbLoc=document.querySelector('input[name="numodo"][value="locales"]'); if(rbLoc) rbLoc.checked=true;
+    resetAltaUsuario();
     toast('Supervisor agregado ✓'); loadUsuarios();
   }catch(ex){ toast('Error: '+ex.message); }
   finally{ btn.disabled=false; }
