@@ -1160,9 +1160,10 @@ function applyFilter(imgData,mode){
 $('#scan-confirm').addEventListener('click', ()=>{
   // Bajamos la resolución de trabajo ANTES de recortar: una foto de celular
   // tiene 12+ megapíxeles y el recorte de perspectiva pixel a pixel sobre eso
-  // tarda decenas de segundos. 1600px de lado más largo alcanza de sobra para
-  // que la IA lea el ticket, y el recorte pasa a tardar menos de un segundo.
-  const MAX_LADO = 2200;
+  // tarda decenas de segundos. 3000px de lado más largo mantiene nítida la letra
+  // chica de los tickets largos (que ocupan solo una franja de la foto) y el
+  // recorte sigue tardando alrededor de un segundo. Esta es la copia que va a Drive.
+  const MAX_LADO = 3000;
   const escalaTrabajo = Math.min(1, MAX_LADO / Math.max(rawImg.width, rawImg.height));
   const workW = Math.round(rawImg.width * escalaTrabajo);
   const workH = Math.round(rawImg.height * escalaTrabajo);
@@ -1218,10 +1219,11 @@ $('#scan-confirm').addEventListener('click', ()=>{
 async function runOCR(blob){
   openReview(true);
   try{
-    // Equilibrio precisión/velocidad: 1600px y calidad 0.8. Cubre bien la letra chica
-    // (percepciones, impuestos internos) y sigue pesando ~300-400KB, muchísimo más
-    // rápido que mandar la imagen completa. La grande se archiva igual en Drive.
-    const b64 = await blobReducidoB64(blob, 1600, 0.8);
+    // Copia liviana SOLO para la IA (la de Drive queda en calidad completa).
+    // Se limita por SUPERFICIE (~2,4 megapíxeles) y no solo por el lado largo: un ticket
+    // térmico es largo y angosto, y achicarlo a 1600px de alto lo dejaba de ~350px de
+    // ancho, con letras ilegibles. Así el ancho se conserva y pesa ~400-600KB.
+    const b64 = await blobReducidoB64(blob, 3000, 0.85, 2.4e6);
     extracted = await api('/api/scan',{method:'POST',body:{imagen_b64:b64}});
     fillReview(extracted);
   }catch(ex){
@@ -1229,11 +1231,11 @@ async function runOCR(blob){
   }
 }
 /* Reduce un blob de imagen a un lado máximo y calidad dados; devuelve base64 sin prefijo. */
-function blobReducidoB64(blob, maxLado, calidad){
+function blobReducidoB64(blob, maxLado, calidad, maxPixeles=Infinity){
   return new Promise((res,rej)=>{
     const img=new Image();
     img.onload=()=>{
-      const escala=Math.min(1, maxLado/Math.max(img.width,img.height));
+      const escala=Math.min(1, maxLado/Math.max(img.width,img.height), Math.sqrt(maxPixeles/(img.width*img.height)));
       const w=Math.max(1,Math.round(img.width*escala)), h=Math.max(1,Math.round(img.height*escala));
       const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
       cv.getContext('2d').drawImage(img,0,0,w,h);
