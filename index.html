@@ -318,7 +318,7 @@ th.num{text-align:right}
 .seg button{padding:9px 14px;font-size:13px;font-weight:600;color:var(--ink-soft);
   background:var(--crema)}
 .seg button.on{background:var(--accent);color:#fff}
-.panel{background:var(--crema);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.panel{background:var(--crema);border:1px solid var(--line);border-radius:16px;overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:14px}
 thead th{text-align:left;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;
   color:var(--ink-soft);font-weight:700;padding:13px 16px;border-bottom:1.5px solid var(--line);
@@ -326,7 +326,7 @@ thead th{text-align:left;font-size:11.5px;letter-spacing:.06em;text-transform:up
 tbody td{padding:12px 16px;border-bottom:1px solid var(--line);vertical-align:middle}
 tbody tr:hover{background:var(--paper)}
 tbody tr:last-child td{border-bottom:none}
-td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:right;font-weight:600}
+td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:right;font-weight:600;white-space:nowrap}
 .tag-cat{font-size:12px;background:var(--paper-2);padding:3px 9px;border-radius:7px;
   display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
 .thumb{width:40px;height:40px;border-radius:8px;object-fit:cover;background:var(--paper-2);
@@ -920,7 +920,7 @@ function renderSupList(gastos){
       <div class="cat-ic">${catIcon(g.categoria)}</div>
       <div class="g-main">
         <div class="g-raz">${esc(g.razon_social||'(sin razón social)')}</div>
-        <div class="g-meta"><span>${g.fecha_rendicion||'—'}</span><span>·</span><span>${esc(g.local||'—')}</span><span>·</span><span>${g.categoria}</span>${g.editado_en?'<span>·</span><span>Editado</span>':''}</div>
+        <div class="g-meta"><span>${detFecha(g.fecha_rendicion)}</span><span>·</span><span>${esc(g.local||'—')}</span><span>·</span><span>${g.categoria}</span>${g.editado_en?'<span>·</span><span>Editado</span>':''}</div>
       </div>
       <div class="g-amt">
         <div class="v">${fmtMoney(g.total)}</div>
@@ -1684,7 +1684,7 @@ function renderDetalle(){
       <td><img class="thumb" src="${imgUrl(x.imagen_key)}" data-full="${imgUrl(x.imagen_key)}" data-fileid="${x.imagen_key}" alt="ver"></td>
       <td class="subtable-supervisor">${esc(x.supervisor)}</td>
       <td>${esc(rendicionLabel(x))}</td>
-      <td class="hide-sm">${x.fecha_rendicion||'—'}${x.editado_en?' <span class="pill-editado">editado</span>':''}</td>
+      <td class="hide-sm">${detFecha(x.fecha_rendicion)}${x.editado_en?' <span class="pill-editado">editado</span>':''}</td>
       <td>${esc(x.razon_social||'—')}<div style="font-size:11px;color:var(--ink-soft)" class="mono">${x.cuit||''}</div></td>
       <td><span class="tag-cat">${catIcon(x.categoria)} ${x.categoria}</span></td>
       <td class="hide-sm">${x.tipo_comprobante||'—'}</td>
@@ -1730,7 +1730,7 @@ function renderResumen(){
 function exportCSV(){
   const g=filtered();
   const head=['Supervisor','Local','Fecha rendición','CUIT','Razon social','Tipo','Categoria','Neto','IVA','Percepciones','Imp. internos','Total'];
-  const rows=g.map(x=>[x.supervisor,x.local||'',x.fecha_rendicion||'',x.cuit||'',x.razon_social||'',
+  const rows=g.map(x=>[x.supervisor,x.local||'',detFecha(x.fecha_rendicion),x.cuit||'',x.razon_social||'',
     x.tipo_comprobante||'',x.categoria,x.neto||0,x.iva||0,x.percepciones||0,x.impuestos_internos||0,x.total||0]);
   const csv=[head,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(';')).join('\n');
   const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
@@ -1784,7 +1784,7 @@ async function exportExcel(){
       c.alignment = {vertical:'middle', horizontal:'left'};
     });
     g.forEach(x=>ws.addRow({
-      sup:x.supervisor, local:x.local||'', fecha:x.fecha_rendicion||'', cuit:normCuit(x.cuit),
+      sup:x.supervisor, local:x.local||'', fecha:fechaExcel(x.fecha_rendicion), cuit:normCuit(x.cuit),
       razon:x.razon_social||'', tipo:x.tipo_comprobante||'', cat:x.categoria,
       neto:x.neto||0, iva:x.iva||0, percep:x.percepciones||0, internos:x.impuestos_internos||0, total:x.total||0
     }));
@@ -1794,6 +1794,7 @@ async function exportExcel(){
     tot.font = {bold:true};
     tot.eachCell(c=>{ c.border = {top:{style:'medium', color:{argb:'FF0F0F11'}}}; });
     ['neto','iva','percep','internos','total'].forEach(k=>{ ws.getColumn(k).numFmt = '"$"#,##0.00'; });
+    ws.getColumn('fecha').numFmt = 'dd/mm/yyyy';   // fecha real de Excel, mostrada a la argentina
     const buf = await wb.xlsx.writeBuffer();
     const blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     const a = document.createElement('a');
@@ -1905,6 +1906,11 @@ $('#lightbox').addEventListener('click', e=>{ if(e.target.id==='lightbox') $('#l
    No toca el backend: los campos ya vienen en el objeto de la fila.
    ======================================================================= */
 let detGastoActual=null;
+/* Para el Excel: 'YYYY-MM-DD' -> Date real (en UTC para que no corra un día por el huso horario). */
+function fechaExcel(f){
+  const m=String(f||'').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? new Date(Date.UTC(+m[1], +m[2]-1, +m[3])) : '';
+}
 function detFecha(f){                 // fechas vienen como 'YYYY-MM-DD'; las paso a DD/MM/AAAA
   if(!f) return '—';
   const m=String(f).match(/^(\d{4})-(\d{2})-(\d{2})/);
