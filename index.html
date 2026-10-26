@@ -789,8 +789,13 @@ async function api(path, opts={}){
   // Un 401 solo significa "sesión vencida" si había sesión abierta. En /api/login el
   // 401 es "usuario o contraseña incorrectos" y NO tiene que cerrar nada.
   if(res.status===401 && path!=='/api/login' && session?.token){
+    // La sesión ya no vence sola: si llega un 401 es porque desactivaron al usuario o
+    // le cambiaron la contraseña. Mostramos el motivo que manda el servidor.
+    let msg='Tu sesión se cerró. Volvé a entrar.';
+    try{ msg=(await res.json()).error||msg; }catch{}
     doLogout();
-    const e=new Error('Tu sesión se cerró. Volvé a entrar.'); e.status=401; throw e;
+    $('#login-err').textContent = msg;
+    const e=new Error(msg); e.status=401; throw e;
   }
   if(!res.ok){
     let msg='Error '+res.status;
@@ -853,7 +858,20 @@ function doLogout(){
 }
 $('#logout-btn').addEventListener('click', doLogout);
 
+/* Pregunta al servidor si la sesión sigue viva. Si el token era de los viejos (los que
+   vencían a los 30 días), el servidor devuelve uno nuevo que no vence y lo guardamos:
+   así nadie tiene que volver a loguearse para pasar al esquema nuevo. */
+async function chequearSesion(){
+  if(!session?.token) return;
+  const r = await api('/api/me');
+  if(r?.token && session){
+    session.token = r.token;
+    localStorage.setItem('viaticos_session', JSON.stringify(session));
+  }
+}
 function enterApp(){
+  $('#login-err').textContent='';
+  chequearSesion().catch(()=>{ /* 401 ya hizo doLogout(); sin red, seguimos */ });
   $('#login').classList.add('hidden');
   $('#app').classList.remove('hidden');
   const u=session.user;
@@ -882,7 +900,7 @@ async function loadLocales(){
 let supPollId=null, supVisHandler=null;
 async function latidoSupervisor(){
   if(session?.user?.rol!=='supervisor' || !session?.token) return;
-  try{ await api('/api/me'); }
+  try{ await chequearSesion(); }
   catch{ /* si fue 401, api() ya hizo doLogout(); cualquier otro error lo ignoramos */ }
 }
 function initSupervisor(){
