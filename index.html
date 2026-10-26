@@ -2094,13 +2094,14 @@ $('#ue-borrar').addEventListener('click', async ()=>{
 
 $('#nu-crear').addEventListener('click', async ()=>{
   const nombre=$('#nu-nombre').value.trim(), usuario=$('#nu-usuario').value.trim(),
-        password=$('#nu-password').value;
+        password=$('#nu-password').value.trim();   // sin espacios en las puntas, igual que al editar
   const caps = {
     rinde_locales:    $('#nu-cap-locales').checked ? 1 : 0,
     rinde_fondo_fijo: $('#nu-cap-fondo').checked   ? 1 : 0,
     rinde_tarjeta:    $('#nu-cap-tarjeta').checked ? 1 : 0,
   };
   if(!nombre||!usuario||!password){ toast('Completá nombre, usuario y contraseña'); return; }
+  if(password.length<4){ toast('La contraseña debe tener al menos 4 caracteres'); return; }
   if(!caps.rinde_locales && !caps.rinde_fondo_fijo && !caps.rinde_tarjeta){ toast('Marcá al menos una forma de rendición'); return; }
   const modo = caps.rinde_locales ? 'locales' : (caps.rinde_fondo_fijo ? 'fondo_fijo' : 'locales');
   const btn=$('#nu-crear'); btn.disabled=true;
