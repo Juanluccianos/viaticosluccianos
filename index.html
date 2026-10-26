@@ -783,12 +783,19 @@ async function api(path, opts={}){
     headers['Content-Type']='application/json';
     opts.body = JSON.stringify(opts.body);
   }
-  const res = await fetch(API_BASE+path, {...opts, headers});
-  if(res.status===401){ doLogout(); throw new Error('Sesión vencida'); }
+  let res;
+  try{ res = await fetch(API_BASE+path, {...opts, headers}); }
+  catch{ const e=new Error('Sin conexión. Revisá internet y probá de nuevo.'); e.status=0; throw e; }
+  // Un 401 solo significa "sesión vencida" si había sesión abierta. En /api/login el
+  // 401 es "usuario o contraseña incorrectos" y NO tiene que cerrar nada.
+  if(res.status===401 && path!=='/api/login' && session?.token){
+    doLogout();
+    const e=new Error('Tu sesión se cerró. Volvé a entrar.'); e.status=401; throw e;
+  }
   if(!res.ok){
     let msg='Error '+res.status;
     try{ msg=(await res.json()).error||msg; }catch{}
-    throw new Error(msg);
+    const e=new Error(msg); e.status=res.status; throw e;
   }
   return res.status===204 ? null : res.json();
 }
@@ -833,7 +840,7 @@ $('#login-form').addEventListener('submit', async e=>{
     localStorage.setItem('viaticos_session', JSON.stringify(session));
     enterApp();
   }catch(ex){
-    err.textContent = ex.message==='Error 401' ? 'Usuario o contraseña incorrectos' : ex.message;
+    err.textContent = ex.status===401 ? 'Usuario o contraseña incorrectos' : ex.message;
   }finally{ btn.disabled=false; btn.textContent='Entrar'; }
 });
 function doLogout(){
