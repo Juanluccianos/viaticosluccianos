@@ -339,6 +339,15 @@ td.num{font-family:var(--font-m);font-variant-numeric:tabular-nums;text-align:ri
 .mini.on-ok{background:var(--accent);color:#fff;border-color:var(--accent)}
 .mini.on-no{background:var(--bordo);color:#fff;border-color:var(--bordo)}
 .subtable-supervisor{font-weight:600}
+.col-shares{text-align:center;white-space:nowrap;width:1%}
+#adm-panel thead th,#adm-panel tbody td{padding-left:12px;padding-right:12px}
+#adm-panel thead th.col-shares,#adm-panel tbody td.col-shares{padding-left:6px;padding-right:16px}
+th.col-shares{text-align:center}
+.pill-shares{display:inline-block;min-width:34px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;
+  border:1px solid var(--line);color:var(--ink-soft);background:var(--crema);cursor:help}
+.pill-shares.si{background:var(--ink);border-color:var(--ink);color:#fff}
+.pill-shares.rech{color:var(--bordo);border-color:#e0bcbc;background:#fbf1f1}
+.pill-shares.na{border-color:transparent;background:transparent}
 .pill-editado{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;
   background:#f4ecd9;color:var(--ambar);padding:1px 7px;border-radius:999px}
 .lightbox{position:fixed;inset:0;z-index:200;background:rgba(10,10,10,.9);
@@ -1673,6 +1682,7 @@ function sortGastos(arr){
       case 'razon_social': return (g.razon_social||'').toLowerCase();
       case 'categoria': return (g.categoria||'').toLowerCase();
       case 'tipo_comprobante': return (g.tipo_comprobante||'').toLowerCase();
+      case 'shares': return sharesInfo(g).ord;
       default: return '';
     }
   };
@@ -1699,12 +1709,22 @@ function thSort(col,label,cls=''){
   const arrow=active?(admSort.dir==='asc'?'▲':'▼'):'↕';
   return `<th class="th-sort ${active?'active':''} ${cls}" data-col="${col}">${label} <span class="tharrow">${arrow}</span></th>`;
 }
+/* Columna "En Shares": se actualiza sola con lo que pasa en Facturas efectivo (Sí = ya está cargado en Shares).
+   Los viáticos de antes de la conexión no tienen estado: se cargaron a mano. */
+function sharesInfo(x){
+  const e=x.efectivo_estado, d=x.efectivo_error||'';
+  if(e==='cargada') return {txt:'Sí', cls:'si', ord:3, tip:'Cargado en Shares'+(d?' · '+d:'')};
+  if(e==='rechazada') return {txt:'No', cls:'rech', ord:0, tip:'Rechazado en Facturas efectivo'+(d?': '+d:'')};
+  if(e==='enviado') return {txt:'No', cls:'no', ord:1, tip:'En Facturas efectivo, todavía no se mandó a Shares'+(d?' ('+d+')':'')};
+  if(e==='pendiente'||e==='error') return {txt:'No', cls:'no', ord:1, tip:'Todavía no llegó a Facturas efectivo'+(e==='error'&&d?': '+d:' (se reintenta solo)')};
+  return {txt:'—', cls:'na', ord:2, tip:'Anterior a la conexión con Facturas efectivo (se cargó a mano)'};
+}
 function renderDetalle(){
   $('#adm-filtros2').style.display='';
   const g=sortGastos(filtered());
   if(!g.length){ $('#adm-panel').innerHTML='<div class="empty"><div class="big">'+icon('folder',40)+'</div><p>No hay gastos con estos filtros.</p></div>'; return; }
   $('#adm-panel').innerHTML=`<table><thead><tr>
-    <th></th>${thSort('supervisor','Supervisor')}${thSort('local','Local')}${thSort('fecha_rendicion','Fecha rendición','hide-sm')}${thSort('razon_social','Razón social')}${thSort('categoria','Categoría')}${thSort('tipo_comprobante','Tipo','hide-sm')}${thSort('total','Total','num')}</tr></thead><tbody>${
+    <th></th>${thSort('supervisor','Supervisor')}${thSort('local','Local')}${thSort('fecha_rendicion','Fecha rendición','hide-sm')}${thSort('razon_social','Razón social')}${thSort('categoria','Categoría')}${thSort('tipo_comprobante','Tipo','hide-sm')}${thSort('total','Total','num')}${thSort('shares','Shares','col-shares')}</tr></thead><tbody>${
     g.map((x,i)=>`<tr class="fila-det" data-idx="${i}" style="cursor:pointer">
       <td><img class="thumb" src="${imgUrl(x.imagen_key)}" data-full="${imgUrl(x.imagen_key)}" data-fileid="${x.imagen_key}" alt="ver"></td>
       <td class="subtable-supervisor">${esc(x.supervisor)}</td>
@@ -1714,6 +1734,7 @@ function renderDetalle(){
       <td><span class="tag-cat">${catIcon(x.categoria)} ${x.categoria}</span></td>
       <td class="hide-sm">${x.tipo_comprobante||'—'}</td>
       <td class="num">${fmtMoney(x.total)}</td>
+      <td class="col-shares">${(i=>`<span class="pill-shares ${i.cls}" title="${esc(i.tip)}">${i.txt}</span>`)(sharesInfo(x))}</td>
     </tr>`).join('')}</tbody></table>`;
   // La miniatura abre directo la imagen (peek rápido) sin disparar el detalle de la fila.
   $('#adm-panel').querySelectorAll('.thumb').forEach(t=>t.onclick=(e)=>{ e.stopPropagation(); openLightbox(t.dataset.full, t.dataset.fileid); });
@@ -1801,6 +1822,7 @@ async function exportExcel(){
       {header:'Percepciones', key:'percep', width:14},
       {header:'Imp. internos', key:'internos', width:14},
       {header:'Total', key:'total', width:15},
+      {header:'En Shares', key:'shares', width:11},
     ];
     const hr = ws.getRow(1); hr.height = 22;
     hr.eachCell(c=>{
@@ -1811,7 +1833,8 @@ async function exportExcel(){
     g.forEach(x=>ws.addRow({
       sup:x.supervisor, local:x.local||'', fecha:fechaExcel(x.fecha_rendicion), cuit:normCuit(x.cuit),
       razon:x.razon_social||'', tipo:x.tipo_comprobante||'', cat:x.categoria,
-      neto:x.neto||0, iva:x.iva||0, percep:x.percepciones||0, internos:x.impuestos_internos||0, total:x.total||0
+      neto:x.neto||0, iva:x.iva||0, percep:x.percepciones||0, internos:x.impuestos_internos||0, total:x.total||0,
+      shares:(i=>i.txt==='—'?'Manual':i.txt)(sharesInfo(x))
     }));
     const sum = k => g.reduce((a,x)=>a+(Number(x[k])||0),0);
     const tot = ws.addRow({ sup:'TOTAL', neto:sum('neto'), iva:sum('iva'),
