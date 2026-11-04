@@ -532,6 +532,7 @@ th.col-shares{text-align:center}
             <button data-v="resumen">Cierre por supervisor</button>
           </div>
           <button class="mini" id="adm-usuarios"><span class="icon" style="width:16px;height:16px"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M15.5 3.13a4 4 0 0 1 0 7.75"/></svg></span> Usuarios</button>
+          <button class="mini" id="adm-locales"><span class="icon" style="width:16px;height:16px"><svg viewBox="0 0 24 24"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 8.5V21h14V8.5"/><path d="M10 21v-6h4v6"/></svg></span> Locales</button>
           <button class="mini ok" id="adm-export">Exportar Excel</button>
         </div>
         <div class="toolbar toolbar2" id="adm-filtros2">
@@ -714,6 +715,48 @@ th.col-shares{text-align:center}
     <div class="act-row" style="justify-content:space-between;margin-top:12px">
       <button class="mini" id="ue-toggle">Desactivar</button>
       <button class="mini danger" id="ue-borrar">Borrar usuario</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sheet ABM locales -->
+<div class="sheet-bg centrado hidden" id="loc-bg">
+  <div class="sheet" id="loc-sheet" style="max-width:560px">
+    <div class="sheet-grab"></div>
+    <h2>Locales</h2>
+    <p class="review-note">Locales donde los supervisores pueden rendir gastos. Los inactivos no aparecen para elegir, pero sus gastos históricos quedan intactos.</p>
+
+    <div class="usr-form">
+      <div class="full"><label>Nombre del local</label><input id="nl-nombre" placeholder="Ej.: Güemes" autocomplete="off"></div>
+      <div class="full"><button class="btn" id="nl-crear" style="width:auto;padding:10px 18px">+ Agregar local</button></div>
+    </div>
+
+    <div class="usr-form" style="padding:10px 16px;margin-top:-4px">
+      <div class="full"><input id="loc-buscar" placeholder="Buscar local…" autocomplete="off"></div>
+    </div>
+    <div class="panel" id="loc-list"></div>
+  </div>
+</div>
+
+<!-- Sheet EDICIÓN de un local (se abre al tocar una fila) -->
+<div class="sheet-bg centrado hidden" id="loc-edit-bg">
+  <div class="sheet" style="max-width:480px">
+    <div class="sheet-grab"></div>
+    <div class="det-head">
+      <div><span class="det-tag">Local</span><h2 id="le-title">Editar local</h2></div>
+      <button class="det-x" id="le-close" aria-label="Cerrar">✕</button>
+    </div>
+    <p class="review-note" id="le-nota">Si le cambiás el nombre, los gastos ya cargados pasan a mostrarse con el nombre nuevo.</p>
+    <div class="usr-form" style="margin-bottom:12px">
+      <div class="full"><label>Nombre del local</label><input id="le-nombre" autocomplete="off"></div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" id="le-cancel">Cancelar</button>
+      <button class="btn" id="le-save">Guardar cambios</button>
+    </div>
+    <div class="act-row" style="justify-content:space-between;margin-top:12px">
+      <button class="mini" id="le-toggle">Desactivar</button>
+      <button class="mini danger" id="le-borrar">Borrar local</button>
     </div>
   </div>
 </div>
@@ -1474,7 +1517,7 @@ function setupLocalCombo(){
   const input=$('#r-local-search'), hidden=$('#r-local-id'), list=$('#local-list');
   function render(filtro){
     const f=(filtro||'').toLowerCase();
-    const items = LOCALES.filter(l=>!l.es_fondo_fijo && !l.es_tarjeta && l.nombre.toLowerCase().includes(f));
+    const items = LOCALES.filter(l=>!l.es_fondo_fijo && !l.es_tarjeta && l.activo!==0 && l.activo!==false && l.nombre.toLowerCase().includes(f));
     if(!items.length){ list.innerHTML='<div class="combo-empty">Sin resultados</div>'; }
     else{
       list.innerHTML = items.map(l=>`<div class="combo-item" data-id="${l.id}">${esc(l.nombre)}</div>`).join('');
@@ -1581,6 +1624,7 @@ function initAdmin(){
   };
   $('#adm-export').onclick=exportExcel;
   $('#adm-usuarios').onclick=openUsuarios;
+  $('#adm-locales').onclick=openLocales;
   document.querySelectorAll('#adm-vista button').forEach(b=>b.onclick=()=>{
     admVista=b.dataset.v;
     document.querySelectorAll('#adm-vista button').forEach(x=>x.classList.toggle('on',x===b));
@@ -2135,6 +2179,125 @@ $('#nu-crear').addEventListener('click', async ()=>{
     toast('Supervisor agregado ✓'); loadUsuarios();
   }catch(ex){ toast('Error: '+ex.message); }
   finally{ btn.disabled=false; }
+});
+
+/* =======================================================================
+   ABM DE LOCALES
+   Mismo criterio que con los supervisores: desactivar en vez de borrar cuando
+   ya hay gastos. El backend rechaza el borrado de un local con gastos (409).
+   Las filas "Fondo fijo" / "Tarjeta corporativa" son internas: no se listan acá.
+   ======================================================================= */
+let LOCALES_ADM = [];
+let locEditId = null;
+
+async function openLocales(){
+  $('#nl-nombre').value=''; $('#loc-buscar').value='';
+  $('#loc-bg').classList.remove('hidden');
+  await loadLocalesAdmin();
+}
+function cerrarLocales(){ $('#loc-bg').classList.add('hidden'); }
+$('#loc-bg').addEventListener('click', e=>{ if(e.target.id==='loc-bg') cerrarLocales(); });
+$('#loc-buscar').addEventListener('input', renderLocalesAdmin);
+
+async function loadLocalesAdmin(){
+  const box=$('#loc-list');
+  box.innerHTML='<div class="center-load"><div class="spin"></div>Cargando…</div>';
+  try{
+    const {locales} = await api('/api/admin/locales');
+    LOCALES_ADM = locales.filter(l=>!l.es_fondo_fijo && !l.es_tarjeta)
+                         .sort((a,b)=>(b.activo?1:0)-(a.activo?1:0) || a.nombre.localeCompare(b.nombre,'es'));
+    renderLocalesAdmin();
+  }catch(ex){ box.innerHTML=`<div class="empty"><p>${esc(ex.message)}</p></div>`; }
+}
+function renderLocalesAdmin(){
+  const box=$('#loc-list'), f=$('#loc-buscar').value.trim().toLowerCase();
+  const lista = LOCALES_ADM.filter(l=>l.nombre.toLowerCase().includes(f));
+  box.innerHTML = lista.map(l=>`
+    <div class="usr-row clickable ${l.activo?'':'usr-off'}" data-id="${l.id}">
+      <div class="usr-av">${esc((l.nombre||'?')[0].toUpperCase())}</div>
+      <div class="usr-main">
+        <div class="usr-name">${esc(l.nombre)} ${l.activo?'':'<span class="pill-inactivo">Inactivo</span>'}</div>
+        <div class="usr-meta">${l.gastos ? l.gastos+(l.gastos===1?' gasto cargado':' gastos cargados') : 'Sin gastos cargados'}</div>
+      </div>
+      <span class="usr-chev">›</span>
+    </div>`).join('') || `<div class="empty" style="padding:24px"><p>${f?'Ningún local coincide con la búsqueda.':'Sin locales todavía.'}</p></div>`;
+  box.querySelectorAll('.usr-row.clickable').forEach(r=>r.onclick=()=>openEditLocal(LOCALES_ADM.find(l=>String(l.id)===r.dataset.id)));
+}
+/* Después de cualquier cambio: refresco la lista del ABM y el catálogo global
+   (LOCALES), que es el que usan el combo de rendición y los selects. */
+async function refrescarLocalesTodo(){
+  await Promise.all([loadLocalesAdmin(), loadLocales()]);
+}
+/* Normalizo para comparar nombres: sin tildes, sin mayúsculas, sin espacios dobles. */
+const normNombre = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+function nombreRepetido(nombre, exceptoId){
+  const n=normNombre(nombre);
+  return LOCALES_ADM.some(l=>normNombre(l.nombre)===n && String(l.id)!==String(exceptoId));
+}
+
+$('#nl-crear').addEventListener('click', async ()=>{
+  const nombre=$('#nl-nombre').value.replace(/\s+/g,' ').trim();
+  if(!nombre){ toast('Escribí el nombre del local'); return; }
+  if(nombreRepetido(nombre)){ toast('Ya existe un local con ese nombre'); return; }
+  const btn=$('#nl-crear'); btn.disabled=true;
+  try{
+    await api('/api/admin/locales',{method:'POST', body:{nombre}});
+    $('#nl-nombre').value='';
+    toast('Local agregado ✓'); await refrescarLocalesTodo();
+  }catch(ex){ toast('Error: '+ex.message); }
+  finally{ btn.disabled=false; }
+});
+$('#nl-nombre').addEventListener('keydown', e=>{ if(e.key==='Enter') $('#nl-crear').click(); });
+
+function openEditLocal(l){
+  if(!l) return;
+  locEditId = l.id;
+  $('#le-title').textContent = l.nombre;
+  $('#le-nombre').value = l.nombre;
+  const t=$('#le-toggle'); t.textContent = l.activo ? 'Desactivar' : 'Activar';
+  t.classList.toggle('no', !!l.activo); t.classList.toggle('ok', !l.activo);
+  t.dataset.activo = l.activo ? '0' : '1';
+  // Si tiene gastos, no se puede borrar: lo aviso de entrada en vez de dejar que falle.
+  $('#le-borrar').classList.toggle('hidden', !!l.gastos);
+  $('#le-nota').textContent = l.gastos
+    ? `Tiene ${l.gastos} ${l.gastos===1?'gasto cargado':'gastos cargados'}: no se puede borrar, pero sí desactivar. Si le cambiás el nombre, esos gastos pasan a mostrarse con el nombre nuevo.`
+    : 'No tiene gastos cargados, así que se puede borrar.';
+  $('#loc-edit-bg').classList.remove('hidden');
+}
+function cerrarEditLocal(){ $('#loc-edit-bg').classList.add('hidden'); locEditId=null; }
+$('#le-close').addEventListener('click', cerrarEditLocal);
+$('#le-cancel').addEventListener('click', cerrarEditLocal);
+$('#loc-edit-bg').addEventListener('click', e=>{ if(e.target.id==='loc-edit-bg') cerrarEditLocal(); });
+
+$('#le-save').addEventListener('click', async ()=>{
+  if(!locEditId) return;
+  const nombre=$('#le-nombre').value.replace(/\s+/g,' ').trim();
+  if(!nombre){ toast('Escribí el nombre del local'); return; }
+  if(nombreRepetido(nombre, locEditId)){ toast('Ya existe un local con ese nombre'); return; }
+  const btn=$('#le-save'); btn.disabled=true;
+  try{
+    await api('/api/admin/locales/'+locEditId, {method:'PATCH', body:{nombre}});
+    toast('Local actualizado ✓'); cerrarEditLocal(); await refrescarLocalesTodo();
+    if(admData) loadAdmin();   // el detalle muestra el nombre del local: lo refresco
+  }catch(ex){ toast('Error: '+ex.message); }
+  finally{ btn.disabled=false; }
+});
+$('#le-toggle').addEventListener('click', async ()=>{
+  if(!locEditId) return;
+  const activo = $('#le-toggle').dataset.activo==='1';
+  try{
+    await api('/api/admin/locales/'+locEditId, {method:'PATCH', body:{activo}});
+    toast(activo?'Local activado':'Local desactivado'); cerrarEditLocal(); await refrescarLocalesTodo();
+  }catch(ex){ toast(ex.message||'Error'); }
+});
+$('#le-borrar').addEventListener('click', async ()=>{
+  if(!locEditId) return;
+  const nombre=$('#le-nombre').value.trim();
+  if(!confirm(`¿Borrar el local ${nombre||''}? No se puede deshacer.`)) return;
+  try{
+    await api('/api/admin/locales/'+locEditId, {method:'DELETE'});
+    toast('Local borrado'); cerrarEditLocal(); await refrescarLocalesTodo();
+  }catch(ex){ toast(ex.message||'Error'); }
 });
 
 /* util */
