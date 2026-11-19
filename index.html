@@ -3,9 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#0a0a0a">
+<meta name="theme-color" content="#f6f5f2">
 <title>Viáticos · Lucciano's</title>
 <link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============ TOKENS ============
    Paleta corporativa monocroma: negro / blanco / grises.
@@ -28,7 +31,6 @@
   --font-b:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --font-m:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
 }
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
 body{
@@ -441,6 +443,89 @@ th.col-shares{text-align:center}
   .adm-nav{width:100%;flex-direction:row;overflow-x:auto;position:static;max-height:none}
   .adm-nav button{width:auto;white-space:nowrap}
 }
+/* =============================================================================
+   Sistema de diseño v3, el mismo de Facturas, Costos, Efectivo, Asientos y Relevamientos.
+   Va al final para pisar el estilo anterior sin mover nada de lugar: las pantallas y los
+   botones quedan donde la gente ya los conoce; cambia el aspecto.
+   Color de esta app: celeste (solo en el ícono y en la banda del login en el celular).
+   ============================================================================= */
+:root{
+  --ink:#15140f; --ink-soft:#6c6a62; --paper:#f6f5f2; --paper-2:#f0efeb;
+  --accent:#4f7a28; --accent-dk:#41651f; --accent-soft:#ebf2e1; --accent-ink:#456b22;
+  --crema:#ffffff; --bordo:#b42318; --line:#e5e3de; --line-strong:#d3d0c9;
+  --side-hover:#e5e4df; --celeste:#9CC5E8;
+  --shadow:0 1px 2px rgba(21,20,15,.05),0 2px 8px rgba(21,20,15,.05);
+  --sh-2:0 14px 34px rgba(21,20,15,.16),0 2px 6px rgba(21,20,15,.08);
+  --font-b:"Instrument Sans","Segoe UI",system-ui,-apple-system,sans-serif;
+}
+:focus-visible{outline:2px solid var(--accent)}
+
+/* botones y campos */
+.btn{border-radius:8px;border:1px solid var(--accent);background:var(--accent)}
+.btn:hover{filter:none;background:var(--accent-dk)}
+.btn-ghost{background:var(--crema);color:var(--ink);border:1px solid var(--line-strong)}
+.btn-ghost:hover{background:var(--paper-2)}
+.btn-danger{background:var(--bordo);border-color:var(--bordo)}
+.field input{border:1px solid var(--line-strong);border-radius:8px;background:var(--crema)}
+.field input:focus{box-shadow:0 0 0 3px var(--accent-soft)}
+.field label{color:var(--ink)}
+
+/* barra de arriba: clara, como en las otras apps */
+.topbar{background:var(--paper);color:var(--ink);border-bottom:1px solid var(--line)}
+.topbar .tb-sub{color:var(--ink-soft);opacity:1}
+.tb-logo{height:34px}
+.tb-username{color:var(--ink)}
+.avatar{background:var(--ink);color:var(--paper)}
+.icon-btn{color:var(--ink-soft);background:none;border:1px solid transparent;border-radius:8px}
+.icon-btn:hover{background:var(--side-hover);color:var(--ink);border-color:var(--line)}
+
+/* tarjeta del total: de negra a clara */
+.total-hero{background:var(--crema);color:var(--ink);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+.total-hero:after{display:none}
+.total-hero .lbl{color:var(--ink-soft);opacity:1;font-weight:700;letter-spacing:.7px;font-size:11.5px}
+.total-hero .meta{color:var(--ink-soft);opacity:1}
+.gasto{box-shadow:var(--shadow)}
+.fab{background:var(--accent);border-radius:14px;box-shadow:var(--sh-2);white-space:nowrap}
+
+/* administración */
+.adm-nav{background:#eeede9;border-color:var(--line)}
+.adm-nav button:hover{background:var(--side-hover);color:var(--ink)}
+.adm-nav button.on{background:var(--crema);color:var(--ink);box-shadow:var(--shadow)}
+.stat{border-radius:12px;box-shadow:var(--shadow)}
+.stat.accent{background:var(--crema);color:var(--ink);border-color:var(--line)}
+.stat.accent .k{color:var(--ink-soft)}
+.panel{border-radius:12px}
+#toast{border-left:4px solid var(--accent);box-shadow:var(--sh-2)}
+
+/* pantalla de acceso: igual a las otras apps */
+#login{min-height:100dvh;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);place-items:stretch;padding:0;background:var(--paper)}
+.acceso-arte{background:var(--ink);color:var(--paper);padding:48px;display:flex;flex-direction:column;justify-content:space-between;gap:32px}
+.acceso-logo{width:220px;height:auto;display:block}
+.acceso-sub{display:none}
+.acceso-txt h2{font:800 40px/1.08 var(--font-d);letter-spacing:-1.2px;max-width:16ch;color:var(--paper)}
+.acceso-txt p{margin-top:14px;color:rgba(246,245,242,.68);max-width:44ch}
+.pasos{display:flex;flex-wrap:wrap;gap:8px}
+.pasos span{display:inline-flex;align-items:center;gap:8px;font-size:13px;padding:6px 12px;border:1px solid rgba(246,245,242,.22);border-radius:999px}
+.pasos svg{width:14px;height:14px;color:#8fc25a}
+.acceso-form{display:grid;place-items:center;padding:32px 16px}
+.acceso-form .caja{width:100%;max-width:360px;display:flex;flex-direction:column}
+.acceso-form h1{font:800 26px/1.15 var(--font-d);letter-spacing:-.6px;color:var(--ink)}
+.acceso-form .intro{margin:4px 0 20px;color:var(--ink-soft)}
+.acceso-form .btn{margin-top:6px}
+@media(max-width:720px){
+  #login{display:flex;flex-direction:column}
+  .acceso-arte{background:var(--celeste);color:#14180f;align-items:center;justify-content:center;text-align:center;gap:10px;
+    padding:calc(env(safe-area-inset-top) + 44px) 24px 40px;border-radius:0 0 32px 32px}
+  .acceso-logo{width:190px;content:url(logo-negro.png)}
+  .acceso-sub{display:block;font:700 14px var(--font-d);letter-spacing:.4px;text-transform:uppercase;color:#1d3a55}
+  .acceso-txt,.acceso-arte .pasos{display:none}
+  .acceso-form{flex:1;place-items:start center;padding:32px 22px calc(env(safe-area-inset-bottom) + 28px)}
+  .acceso-form .caja{max-width:420px}
+  .acceso-form h1{font-size:28px}
+  .acceso-form .field input{border-radius:14px;padding:14px}
+  .acceso-form .btn{border-radius:14px;padding:15px;font-size:16px}
+}
+
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </head>
@@ -448,10 +533,24 @@ th.col-shares{text-align:center}
 
 <!-- ============ LOGIN ============ -->
 <section id="login">
-  <form class="card-login" id="login-form" autocomplete="on">
-    <img src="logo-negro.png" alt="Lucciano's" class="login-logo" onerror="this.style.display='none'; document.getElementById('brand-fallback').style.display='block';">
-    <div class="brand" id="brand-fallback" style="display:none">Lucciano's · Gestión</div>
-    <h1>Viáticos</h1>
+  <div class="acceso-arte">
+    <img src="logo-blanco.png" alt="Lucciano's" class="acceso-logo">
+    <p class="acceso-sub">Viáticos</p>
+    <div class="acceso-txt">
+      <h2>Viáticos del mes, sin papeles.</h2>
+      <p>Escaneás el comprobante con el celular, la app lee los datos y queda imputado como viático del mes. Administración ve todo y exporta el cierre.</p>
+    </div>
+    <div class="pasos">
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>Escaneás el comprobante</span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M8 13h8M8 17h5"/></svg>Se leen los datos</span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Revisás y guardás</span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/></svg>Sale en el cierre</span>
+    </div>
+  </div>
+  <div class="acceso-form">
+    <form class="caja" id="login-form" autocomplete="on">
+      <h1>Ingresar</h1>
+      <p class="intro">Usá tu usuario de Viáticos.</p>
     <div class="field">
       <label for="u">Usuario</label>
       <input id="u" name="username" autocomplete="username" required autocapitalize="none" spellcheck="false">
@@ -466,15 +565,16 @@ th.col-shares{text-align:center}
       </div>
     </div>
     <button class="btn" id="login-btn" type="submit">Entrar</button>
-    <div class="err" id="login-err"></div>
-  </form>
+      <div class="err" id="login-err"></div>
+    </form>
+  </div>
 </section>
 
 <!-- ============ APP ============ -->
 <div id="app" class="hidden">
   <header class="topbar">
     <div class="tb-left">
-      <img src="logo-blanco.png" alt="Lucciano's" class="tb-logo" onerror="this.style.display='none'">
+      <img src="logo-negro.png" alt="Lucciano's" class="tb-logo" onerror="this.style.display='none'">
       <div>
         <div class="tb-title" id="tb-title">Viáticos</div>
         <div class="tb-sub" id="tb-sub"></div>
@@ -900,12 +1000,21 @@ $('#login-form').addEventListener('submit', async e=>{
     err.textContent = ex.status===401 ? 'Usuario o contraseña incorrectos' : ex.message;
   }finally{ btn.disabled=false; btn.textContent='Entrar'; }
 });
+// Color de la barra de estado del celular: celeste (color de Viáticos) en el login, papel adentro
+const COLOR_APP = '#9CC5E8';
+function colorBarra(c){
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m=>{
+    if(!m.dataset.orig) m.dataset.orig=m.content;
+    m.content = c || m.dataset.orig;
+  });
+}
 function doLogout(){
   if(admPollId){ clearInterval(admPollId); admPollId=null; }
   if(supPollId){ clearInterval(supPollId); supPollId=null; }
   if(supVisHandler){ document.removeEventListener('visibilitychange', supVisHandler); supVisHandler=null; }
   session=null; localStorage.removeItem('viaticos_session');
   $('#app').classList.add('hidden'); $('#login').classList.remove('hidden');
+  colorBarra(COLOR_APP);
   $('#p').value='';
 }
 $('#logout-btn').addEventListener('click', doLogout);
@@ -926,6 +1035,7 @@ function enterApp(){
   chequearSesion().catch(()=>{ /* 401 ya hizo doLogout(); sin red, seguimos */ });
   $('#login').classList.add('hidden');
   $('#app').classList.remove('hidden');
+  colorBarra(null);
   const u=session.user;
   $('#tb-avatar').textContent = (u.nombre||'?').trim()[0].toUpperCase();
   $('#tb-username').textContent = u.nombre || '';
@@ -2306,7 +2416,7 @@ function esc(s){ return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&l
 /* =======================================================================
    BOOT
    ======================================================================= */
-if(session?.token){ enterApp(); }
+if(session?.token){ enterApp(); } else { colorBarra(COLOR_APP); }
 if('serviceWorker' in navigator){
   let swEnEspera = null;
 
