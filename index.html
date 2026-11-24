@@ -541,7 +541,8 @@ th.col-shares{text-align:center}
   body.es-admin #adm-view{margin-left:248px;max-width:none;padding:0 0 60px}
   body.es-admin #adm-view .adm-shell{max-width:1320px;margin:0 auto;padding:24px 32px 0}
   body.es-admin #adm-vista, body.es-admin #adm-usuarios, body.es-admin #adm-locales{display:none}
-  body.es-admin .adm-nav{top:84px}
+  body.es-admin .adm-nav{display:none}
+  body.es-admin .adm-shell{display:block}
   body.es-admin .stat .v{font-family:var(--font-d);font-size:26px;font-weight:800;letter-spacing:-.4px;white-space:nowrap}
   body.es-admin .stat{border-radius:16px}
   .v-brand{display:flex;flex-direction:column;align-items:center;gap:4px;text-decoration:none}
@@ -568,6 +569,8 @@ th.col-shares{text-align:center}
   .v-top .grow{flex:1}
 }
 .v-top{display:none}
+#adm-sup-sel{display:none}
+@media (min-width:1000px){ body.es-admin #adm-sup-sel{display:block} }
 @media (min-width:1000px){ body.es-admin .v-top{display:flex} }
 </style>
 </head>
@@ -690,6 +693,7 @@ th.col-shares{text-align:center}
         <div class="toolbar">
           <select class="sel" id="adm-periodo"></select>
           <select class="sel" id="adm-categoria"><option value="">Todas las categorías</option></select>
+          <select class="sel" id="adm-sup-sel" aria-label="Supervisor"><option value="">Todos los supervisores</option></select>
           <div class="grow"></div>
           <div class="seg" id="adm-vista">
             <button data-v="detalle" class="on">Detalle</button>
@@ -982,6 +986,53 @@ function icon(name, sizePx){
 }
 
 /* ---- estado ---- */
+/* Entrada desde Herramientas: si en este navegador quedó la sesión de OTRA persona (o una sesión vieja,
+   anterior al login único), se descarta y el portal consigue la de quien está usando la compu. */
+(function controlarCuenta() {
+  const m = location.hash.match(/^#portal(?:!(\d+))?(?:=.*)?$/);
+  if (!m) return;
+  try {
+    const uid = m[1], claves = ['viaticos_session'];
+    const tok = localStorage.getItem(claves[0]) || '';
+    const token = (() => { try { const j = JSON.parse(tok); return (j && j.token) || j || ''; } catch { return tok; } })();
+    const central = /^[A-Za-z0-9_-]{43}$/.test(String(token));
+    const dueno = localStorage.getItem('herr_uid');
+    if (token && (!central || (uid && dueno !== uid))) { claves.forEach(k => localStorage.removeItem(k)); localStorage.removeItem('herr_uid'); }
+    if (uid) history.replaceState(null, '', location.pathname + location.search + location.hash.replace('!' + uid, ''));
+  } catch (e) { /* sin storage */ }
+})();
+
+/* Marco común de Herramientas: botón negro "‹ Herramientas" arriba de la barra lateral y la ruta
+   "Herramientas / Viáticos / …" en la barra de arriba. No aparece para quien usa una sola app (operativos). */
+(function marcoHerramientas() {
+  try { if (localStorage.getItem('herr_portal') === '0') return; } catch (e) { /* sin storage */ }
+  document.head.insertAdjacentHTML('beforeend', `<style id="herr-marco">
+    .herr-volver { display: flex !important; align-items: center; gap: 9px; margin: 0 0 14px; padding: 10px 12px !important; border-radius: 12px !important; background: #15140f !important; color: #fff !important; text-decoration: none !important; font: 600 14px/1.1 'Instrument Sans', system-ui, sans-serif !important; box-shadow: none !important; }
+    .herr-volver:hover { background: #2c2a22 !important; }
+    .herr-volver svg { width: 16px !important; height: 16px !important; flex: none; color: #fff !important; }
+    .herr-volver b { flex: 1; font-weight: 600; }
+    .herr-ruta { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; }
+    .herr-ruta a { color: inherit; opacity: .6; text-decoration: none; }
+    .herr-ruta a:hover { opacity: 1; text-decoration: underline; }
+    .herr-ruta i { font-style: normal; opacity: .45; }
+    
+  </style>`);
+  const FLECHA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>';
+  const GRILLA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>';
+  const poner = () => {
+    document.querySelectorAll('#v-side').forEach(s => {
+      if (s.querySelector('.herr-volver')) return;
+      const br = s.querySelector(':scope > .brand, :scope > .v-brand');
+      (br || s).insertAdjacentHTML(br ? 'afterend' : 'afterbegin', `<a class="herr-volver" href="https://herramientas.luccianos.com.ar" title="Volver a Herramientas">${FLECHA}<b>Herramientas</b>${GRILLA}</a>`);
+    });
+    document.querySelectorAll('.v-top h1').forEach(c => {
+      if (!c.querySelector('.herr-ruta')) c.insertAdjacentHTML('afterbegin', `<span class="herr-ruta"><a href="https://herramientas.luccianos.com.ar">Herramientas</a><i>/</i><span>Viáticos</span><i>/</i></span> `);
+    });
+  };
+  new MutationObserver(poner).observe(document.documentElement, { childList: true, subtree: true });
+  poner();
+})();
+
 let session = JSON.parse(localStorage.getItem('viaticos_session') || 'null');
 let capturedBlob = null;   // imagen procesada lista para subir
 let extracted = null;      // datos devueltos por IA
@@ -1875,6 +1926,12 @@ function renderAdminNav(){
       <button data-sup="${esc(u.nombre)}" class="${admSupervisorFiltro===u.nombre?'on':''} ${u.activo?'':'usr-off'}">
         <span>${esc(u.nombre)}</span><span class="nav-count">${conteo[u.nombre]||''}</span>
       </button>`).join('');
+  const sel=$('#adm-sup-sel');
+  if(sel){
+    sel.innerHTML=`<option value="">Todos los supervisores (${totalGastos||0})</option>`+ADMIN_USUARIOS.map(u=>`<option value="${esc(u.nombre)}" ${admSupervisorFiltro===u.nombre?'selected':''}>${esc(u.nombre)}${conteo[u.nombre]?` (${conteo[u.nombre]})`:''}${u.activo?'':' · inactivo'}</option>`).join('');
+    sel.value=admSupervisorFiltro;
+    sel.onchange=()=>{ admSupervisorFiltro=sel.value; nav.querySelectorAll('button[data-sup]').forEach(x=>x.classList.toggle('on', x.dataset.sup===sel.value)); renderStats(); renderAdmin(); };
+  }
   nav.querySelectorAll('button[data-sup]').forEach(b=>b.onclick=()=>{
     admSupervisorFiltro = b.dataset.sup;
     nav.querySelectorAll('button[data-sup]').forEach(x=>x.classList.toggle('on', x===b));
@@ -2536,6 +2593,7 @@ async function accesoDesdePortal(){
     session = { token: r.token, user: d.user };
     localStorage.setItem('viaticos_session', JSON.stringify(session));
     localStorage.setItem('herr_portal', r.ve_portal === false ? '0' : '1');
+    localStorage.setItem('herr_uid', String(r.usuario?.id || ''));
   } catch (e) {
     setTimeout(() => toast(/fetch/i.test(e.message) ? 'No se pudo conectar para ingresar. Volvé a entrar desde el portal.' : e.message, 4000), 400);
   }
