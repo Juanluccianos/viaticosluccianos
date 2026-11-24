@@ -527,6 +527,48 @@ th.col-shares{text-align:center}
 }
 
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* ============ MARCO COMÚN (igual que Facturas, Payway, Costos, Relevamientos) ============
+   En la compu, el panel de administración usa la misma barra lateral que las otras apps.
+   El celular del supervisor queda como estaba. */
+:root{ --paper:#f6f5f2; --paper-2:#f0efeb; --line:#e5e3de; --ink-soft:#6c6a62; --side:#eeede9; --side-hover:#e5e4df;
+  --verde:#4f7a28; --font-b:"Instrument Sans","Segoe UI",system-ui,-apple-system,sans-serif; }
+.v-side{display:none}
+@media (min-width:1000px){
+  body.es-admin .topbar{display:none}
+  body.es-admin .v-side{display:flex;position:fixed;top:0;left:0;bottom:0;width:248px;z-index:30;flex-direction:column;gap:16px;
+    padding:20px 14px 12px;background:var(--side);border-right:1px solid var(--line)}
+  body.es-admin #adm-view{margin-left:248px;max-width:none;padding:0 0 60px}
+  body.es-admin #adm-view .adm-shell{max-width:1320px;margin:0 auto;padding:24px 32px 0}
+  body.es-admin #adm-vista, body.es-admin #adm-usuarios, body.es-admin #adm-locales{display:none}
+  body.es-admin .adm-nav{top:84px}
+  body.es-admin .stat .v{font-family:var(--font-d);font-size:26px;font-weight:800;letter-spacing:-.4px;white-space:nowrap}
+  body.es-admin .stat{border-radius:16px}
+  .v-brand{display:flex;flex-direction:column;align-items:center;gap:4px;text-decoration:none}
+  .v-brand img{width:132px;height:auto}
+  .v-brand span{font-size:11px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--ink-soft)}
+  .v-nav{display:flex;flex-direction:column;gap:2px;flex:1;min-height:0;overflow-y:auto}
+  .v-nav .grp-t{font-size:11px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--ink-soft);padding:14px 10px 6px}
+  .v-nav button{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:8px;font-size:14px;font-weight:500;color:var(--ink-soft);text-align:left;transition:background .15s,color .15s}
+  .v-nav button svg{width:18px;height:18px;flex:none}
+  .v-nav button:hover{background:var(--side-hover);color:var(--ink)}
+  .v-nav button.activo{background:#fff;color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(21,20,15,.05),0 2px 8px rgba(21,20,15,.05)}
+  .v-nav button.activo svg{color:var(--verde)}
+  .v-me{display:flex;align-items:center;gap:10px;padding:12px 8px 2px;border-top:1px solid var(--line)}
+  .v-me .av{flex:none;width:34px;height:34px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font:700 13px var(--font-d)}
+  .v-me .who{flex:1;min-width:0;line-height:1.25}
+  .v-me .who b{display:block;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .v-me .who small{font-size:12px;color:var(--ink-soft)}
+  .v-me .ibtn{flex:none;width:34px;height:34px;border-radius:8px;display:grid;place-items:center;color:var(--ink-soft)}
+  .v-me .ibtn:hover{background:var(--side-hover);color:var(--ink)}
+  .v-me .ibtn svg{width:18px;height:18px}
+  .v-top{display:flex;position:sticky;top:0;z-index:25;height:58px;align-items:center;gap:14px;padding:0 32px;
+    background:color-mix(in srgb,var(--paper) 84%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .v-top h1{font:700 15px var(--font-b);color:var(--ink)}
+  .v-top .grow{flex:1}
+}
+.v-top{display:none}
+@media (min-width:1000px){ body.es-admin .v-top{display:flex} }
 </style>
 </head>
 <body>
@@ -575,6 +617,24 @@ th.col-shares{text-align:center}
 
 <!-- ============ APP ============ -->
 <div id="app" class="hidden">
+
+  <!-- ---- MARCO COMÚN: barra lateral del panel de administración (solo en la compu) ---- -->
+  <aside class="v-side" id="v-side" aria-label="Menú de Viáticos">
+    <a class="v-brand" href="#"><img src="logo-negro.png" alt="Lucciano's"><span>Viáticos</span></a>
+    <nav class="v-nav">
+      <div class="grp-t">Trabajo</div>
+      <button type="button" class="activo" data-side="detalle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Comprobantes</button>
+      <button type="button" data-side="resumen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6"/><path d="M17 11l2 2 4-4"/></svg>Cierre por supervisor</button>
+      <div class="grp-t">Datos</div>
+      <button type="button" data-side="usuarios"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M15.5 3.13a4 4 0 0 1 0 7.75"/></svg>Usuarios</button>
+      <button type="button" data-side="locales"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 8.5V21h14V8.5"/><path d="M10 21v-6h4v6"/></svg>Locales</button>
+    </nav>
+    <div class="v-me">
+      <span class="av" id="v-av">–</span>
+      <div class="who"><b id="v-nombre"></b><small>Administrador</small></div>
+      <a class="ibtn" href="https://herramientas.luccianos.com.ar" title="Volver al portal" aria-label="Volver al portal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></a>
+    </div>
+  </aside>
   <header class="topbar">
     <div class="tb-left">
       <img src="logo-negro.png" alt="Lucciano's" class="tb-logo" onerror="this.style.display='none'">
@@ -622,6 +682,7 @@ th.col-shares{text-align:center}
 
   <!-- ---- ADMIN ---- -->
   <main id="adm-view" class="hidden">
+    <header class="v-top"><h1 id="v-titulo">Comprobantes</h1><div class="grow"></div><span class="tb-sub" id="v-sub"></span></header>
     <div class="adm-shell">
       <aside class="adm-nav" id="adm-nav"></aside>
       <div class="adm-main">
@@ -1020,6 +1081,7 @@ function colorBarra(c){
   });
 }
 function doLogout(){
+  document.body.classList.remove('es-admin');
   if(admPollId){ clearInterval(admPollId); admPollId=null; }
   if(supPollId){ clearInterval(supPollId); supPollId=null; }
   if(supVisHandler){ document.removeEventListener('visibilitychange', supVisHandler); supVisHandler=null; }
@@ -1040,6 +1102,22 @@ async function chequearSesion(){
     localStorage.setItem('viaticos_session', JSON.stringify(session));
   }
 }
+/* Marco común: la barra lateral maneja los mismos botones de siempre (vista, Usuarios, Locales) */
+function marcoAdmin(u){
+  const nom = u.nombre || '';
+  $('#v-av').textContent = nom.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0].toUpperCase()).join('') || '–';
+  $('#v-nombre').textContent = nom;
+  const titulos = { detalle: 'Comprobantes', resumen: 'Cierre por supervisor' };
+  document.querySelectorAll('#v-side [data-side]').forEach(b => b.onclick = () => {
+    const k = b.dataset.side;
+    if (k === 'usuarios') return $('#adm-usuarios').click();
+    if (k === 'locales') return $('#adm-locales').click();
+    const seg = document.querySelector(`#adm-vista button[data-v="${k}"]`);
+    if (seg) seg.click();
+    document.querySelectorAll('#v-side [data-side="detalle"],#v-side [data-side="resumen"]').forEach(x => x.classList.toggle('activo', x === b));
+    $('#v-titulo').textContent = titulos[k] || 'Viáticos';
+  });
+}
 function enterApp(){
   $('#login-err').textContent='';
   chequearSesion().catch(()=>{ /* 401 ya hizo doLogout(); sin red, seguimos */ });
@@ -1050,6 +1128,8 @@ function enterApp(){
   $('#tb-avatar').textContent = (u.nombre||'?').trim()[0].toUpperCase();
   $('#tb-username').textContent = u.nombre || '';
   $('#tb-sub').textContent = u.rol==='admin' ? 'Panel de administración' : capsSummary(u);
+  document.body.classList.toggle('es-admin', u.rol==='admin');
+  if(u.rol==='admin') marcoAdmin(u);
   loadLocales().then(()=>{
     if(u.rol==='admin'){ initAdmin(); }
     else { initSupervisor(); }
