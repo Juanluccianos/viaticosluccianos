@@ -883,6 +883,8 @@ const ACCESO_API = 'https://acceso-api.lucciano-viaticos.workers.dev';
 const ACCESO_APP = 'viaticos';
 /* Transición: mientras sea true se puede seguir entrando con la clave vieja. Al terminar, pasarlo a false. */
 const LOGIN_VIEJO = true;
+// Operativos con una sola app (supervisores, escaneo): sin botón para volver a Herramientas
+try { if (localStorage.getItem('herr_portal') === '0') document.head.insertAdjacentHTML('beforeend', '<style>[aria-label="Volver al portal"]{display:none!important}</style>'); } catch (e) { /* sin storage */ }
 
 const CATEGORIAS = [
   {id:'Combustible',  ic:'fuel'},
@@ -2453,6 +2455,7 @@ async function accesoDesdePortal(){
     if (!res2.ok || !d.user) throw new Error(d.error || 'No se pudo ingresar.');
     session = { token: r.token, user: d.user };
     localStorage.setItem('viaticos_session', JSON.stringify(session));
+    localStorage.setItem('herr_portal', r.ve_portal === false ? '0' : '1');
   } catch (e) {
     setTimeout(() => toast(/fetch/i.test(e.message) ? 'No se pudo conectar para ingresar. Volvé a entrar desde el portal.' : e.message, 4000), 400);
   }
