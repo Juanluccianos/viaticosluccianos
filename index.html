@@ -597,22 +597,6 @@ th.col-shares{text-align:center}
       <h1>Ingresar</h1>
       <p class="intro">Entrá desde el portal de Herramientas, con tu usuario de Lucciano's.</p>
       <a class="btn" href="https://herramientas.luccianos.com.ar/#ir=viaticos" style="display:flex;align-items:center;justify-content:center;text-decoration:none">Ir al portal</a>
-      <details id="login-viejo" style="margin-top:18px"><summary style="cursor:pointer;font-size:14px;opacity:.75">Ingresar con la clave anterior de Viáticos</summary><div style="margin-top:12px">
-    <div class="field">
-      <label for="u">Usuario</label>
-      <input id="u" name="username" autocomplete="username" required autocapitalize="none" spellcheck="false">
-    </div>
-    <div class="field">
-      <label for="p">Contraseña</label>
-      <div class="pw-wrap">
-        <input id="p" name="password" type="password" autocomplete="current-password" required>
-        <button type="button" class="pw-eye" id="pw-eye" aria-label="Mostrar contraseña" title="Mostrar contraseña">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-        </button>
-      </div>
-    </div>
-    <button class="btn" id="login-btn" type="submit">Entrar</button>
-      </div></details>
       <div class="err" id="login-err"></div>
     </form>
   </div>
@@ -629,7 +613,7 @@ th.col-shares{text-align:center}
       <button type="button" class="activo" data-side="detalle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Comprobantes</button>
       <button type="button" data-side="resumen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6"/><path d="M17 11l2 2 4-4"/></svg>Cierre por supervisor</button>
       <div class="grp-t">Datos</div>
-      <button type="button" data-side="usuarios"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M15.5 3.13a4 4 0 0 1 0 7.75"/></svg>Usuarios</button>
+      <button type="button" data-side="usuarios"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M15.5 3.13a4 4 0 0 1 0 7.75"/></svg>Supervisores</button>
       <button type="button" data-side="locales"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 8.5V21h14V8.5"/><path d="M10 21v-6h4v6"/></svg>Locales</button>
     </nav>
     <div class="v-me">
@@ -699,7 +683,7 @@ th.col-shares{text-align:center}
             <button data-v="detalle" class="on">Detalle</button>
             <button data-v="resumen">Cierre por supervisor</button>
           </div>
-          <button class="mini" id="adm-usuarios"><span class="icon" style="width:16px;height:16px"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M15.5 3.13a4 4 0 0 1 0 7.75"/></svg></span> Usuarios</button>
+          <button class="mini" id="adm-usuarios"><span class="icon" style="width:16px;height:16px"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M15.5 3.13a4 4 0 0 1 0 7.75"/></svg></span> Supervisores</button>
           <button class="mini" id="adm-locales"><span class="icon" style="width:16px;height:16px"><svg viewBox="0 0 24 24"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 8.5V21h14V8.5"/><path d="M10 21v-6h4v6"/></svg></span> Locales</button>
           <button class="mini" id="adm-salud" title="Estado de la lectura automática"><span class="icon" style="width:16px;height:16px"><svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></span>Lectura automática</button>
           <button class="mini ok" id="adm-export">Exportar Excel</button>
@@ -830,26 +814,12 @@ th.col-shares{text-align:center}
   </div>
 </div>
 
-<!-- Sheet ABM usuarios -->
+<!-- Sheet supervisores: solo qué rinde cada uno (el acceso se maneja en el portal) -->
 <div class="sheet-bg centrado hidden" id="usr-bg">
   <div class="sheet" id="usr-sheet" style="max-width:640px">
     <div class="sheet-grab"></div>
     <h2>Supervisores</h2>
-    <p class="review-note">Alta y baja de usuarios que pueden cargar viáticos.</p>
-
-    <div class="usr-form">
-      <div><label>Nombre y apellido</label><input id="nu-nombre" placeholder="Pedro Gómez"></div>
-      <div><label>Usuario</label><input id="nu-usuario" placeholder="pgomez" autocapitalize="none"></div>
-      <div><label>Contraseña</label><input id="nu-password" type="text" placeholder="clave inicial"></div>
-      <div class="full"><label>Rinde por <span style="font-weight:400;color:var(--ink-soft)">(marcá todo lo que corresponda)</span></label>
-        <div class="cap-grid" id="nu-caps">
-          <label class="cap-opt"><input type="checkbox" id="nu-cap-locales" checked><span>Locales</span></label>
-          <label class="cap-opt"><input type="checkbox" id="nu-cap-fondo"><span>Fondo fijo</span></label>
-          <label class="cap-opt"><input type="checkbox" id="nu-cap-tarjeta"><span>Tarjeta corp.</span></label>
-        </div>
-      </div>
-      <div class="full"><button class="btn" id="nu-crear" style="width:auto;padding:10px 18px">+ Agregar supervisor</button></div>
-    </div>
+    <p class="review-note">Qué puede rendir cada supervisor. Para dar o sacar acceso a Viáticos se usa el portal de Herramientas; quien entra por primera vez queda rindiendo por Locales.</p>
 
     <div class="panel" id="usr-list"></div>
   </div>
@@ -863,13 +833,9 @@ th.col-shares{text-align:center}
       <div><span class="det-tag" id="ue-tag">Supervisor</span><h2 id="ue-title">Editar usuario</h2></div>
       <button class="det-x" id="ue-close" aria-label="Cerrar">✕</button>
     </div>
-    <p class="review-note">Editá los datos del supervisor y qué puede rendir. Los gastos ya cargados no se tocan.</p>
+    <p class="review-note">Marcá todo lo que puede rendir. Los gastos ya cargados no se tocan.</p>
     <div class="usr-form" style="margin-bottom:12px">
-      <div><label>Nombre y apellido</label><input id="ue-nombre" placeholder="Pedro Gómez"></div>
-      <div><label>Usuario</label><input id="ue-usuario" placeholder="pgomez" autocapitalize="none"></div>
-      <div class="full"><label>Nueva contraseña <span style="font-weight:400;color:var(--ink-soft)">(dejá en blanco para no cambiarla)</span></label>
-        <input id="ue-password" type="text" placeholder="••••" autocomplete="new-password"></div>
-      <div class="full"><label>Rinde por <span style="font-weight:400;color:var(--ink-soft)">(marcá todo lo que corresponda)</span></label>
+      <div class="full"><label>Rinde por</label>
         <div class="cap-grid" id="ue-caps">
           <label class="cap-opt"><input type="checkbox" id="ue-cap-locales"><span>Locales</span></label>
           <label class="cap-opt"><input type="checkbox" id="ue-cap-fondo"><span>Fondo fijo</span></label>
@@ -880,10 +846,6 @@ th.col-shares{text-align:center}
     <div class="sheet-actions">
       <button class="btn btn-ghost" id="ue-cancel">Cancelar</button>
       <button class="btn" id="ue-save">Guardar cambios</button>
-    </div>
-    <div class="act-row" style="justify-content:space-between;margin-top:12px">
-      <button class="mini" id="ue-toggle">Desactivar</button>
-      <button class="mini danger" id="ue-borrar">Borrar usuario</button>
     </div>
   </div>
 </div>
@@ -957,8 +919,6 @@ const API_BASE = localStorage.getItem('viaticos_api') || 'https://viaticos-api.l
 const PORTAL = 'https://herramientas.luccianos.com.ar';
 const ACCESO_API = 'https://acceso-api.lucciano-viaticos.workers.dev';
 const ACCESO_APP = 'viaticos';
-/* Transición: mientras sea true se puede seguir entrando con la clave vieja. Al terminar, pasarlo a false. */
-const LOGIN_VIEJO = true;
 // Operativos con una sola app (supervisores, escaneo): sin botón para volver a Herramientas
 try { if (localStorage.getItem('herr_portal') === '0') document.head.insertAdjacentHTML('beforeend', '<style>[aria-label="Volver al portal"]{display:none!important}</style>'); } catch (e) { /* sin storage */ }
 
@@ -1111,30 +1071,8 @@ function fillCategorias(sel){
 /* =======================================================================
    AUTH
    ======================================================================= */
-$('#pw-eye').addEventListener('click', ()=>{
-  const inp=$('#p'), btn=$('#pw-eye');
-  const ver = inp.type==='password';
-  inp.type = ver ? 'text' : 'password';
-  btn.classList.toggle('on', ver);
-  btn.setAttribute('aria-label', ver ? 'Ocultar contraseña' : 'Mostrar contraseña');
-  btn.title = ver ? 'Ocultar contraseña' : 'Mostrar contraseña';
-  inp.focus();
-});
-$('#login-form').addEventListener('submit', async e=>{
-  e.preventDefault();
-  const btn=$('#login-btn'), err=$('#login-err');
-  err.textContent=''; btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
-  try{
-    const data = await api('/api/login',{method:'POST',body:{
-      usuario:$('#u').value.trim(), password:$('#p').value
-    }});
-    session=data;
-    localStorage.setItem('viaticos_session', JSON.stringify(session));
-    enterApp();
-  }catch(ex){
-    err.textContent = ex.status===401 ? 'Usuario o contraseña incorrectos' : ex.message;
-  }finally{ btn.disabled=false; btn.textContent='Entrar'; }
-});
+// El ingreso es solo desde el portal: el formulario no envía nada
+$('#login-form').addEventListener('submit', e=>e.preventDefault());
 // Color de la barra de estado del celular: celeste (color de Viáticos) en el login, papel adentro
 const COLOR_APP = '#9CC5E8';
 function colorBarra(c){
@@ -1151,7 +1089,6 @@ function doLogout(){
   session=null; localStorage.removeItem('viaticos_session');
   $('#app').classList.add('hidden'); $('#login').classList.remove('hidden');
   colorBarra(COLOR_APP);
-  $('#p').value='';
 }
 
 /* Pregunta al servidor si la sesión sigue viva. Si el token era de los viejos (los que
@@ -2384,12 +2321,7 @@ function fillLocalesSelect(sel){
 }
 let USUARIOS = [];   // supervisores cargados, para abrir el detalle sin re-pedir
 
-/* Al abrir el ABM, reseteo el alta a su estado por defecto (solo "Locales"). */
-function resetAltaUsuario(){
-  $('#nu-cap-locales').checked=true; $('#nu-cap-fondo').checked=false; $('#nu-cap-tarjeta').checked=false;
-}
 async function openUsuarios(){
-  resetAltaUsuario();
   $('#usr-bg').classList.remove('hidden');
   await loadUsuarios();
 }
@@ -2400,13 +2332,14 @@ async function loadUsuarios(){
   box.innerHTML='<div class="center-load"><div class="spin"></div>Cargando…</div>';
   try{
     const {usuarios} = await api('/api/admin/usuarios');
-    USUARIOS = usuarios.filter(u=>u.rol==='supervisor');
+    // Solo los activos: el portal reactiva a cualquiera que vuelva a entrar
+    USUARIOS = usuarios.filter(u=>u.rol==='supervisor' && u.activo);
     box.innerHTML = USUARIOS.map((u,i)=>`
-      <div class="usr-row clickable ${u.activo?'':'usr-off'}" data-idx="${i}">
+      <div class="usr-row clickable" data-idx="${i}">
         <div class="usr-av">${(u.nombre||'?')[0].toUpperCase()}</div>
         <div class="usr-main">
-          <div class="usr-name">${esc(u.nombre)} ${u.activo?'':'<span class="pill-inactivo">Inactivo</span>'}</div>
-          <div class="usr-meta">@${esc(u.usuario)} · ${esc(capsSummary(u))}</div>
+          <div class="usr-name">${esc(u.nombre)}</div>
+          <div class="usr-meta">${esc(capsSummary(u))}</div>
         </div>
         <span class="usr-chev">›</span>
       </div>`).join('') || '<div class="empty" style="padding:24px"><p>Sin supervisores todavía.</p></div>';
@@ -2421,15 +2354,9 @@ function openEditUsuario(u){
   usrEditId = u.id;
   const caps = userCaps(u);
   $('#ue-title').textContent = u.nombre || 'Usuario';
-  $('#ue-nombre').value = u.nombre || '';
-  $('#ue-usuario').value = u.usuario || '';
-  $('#ue-password').value = '';
   $('#ue-cap-locales').checked = caps.locales;
   $('#ue-cap-fondo').checked   = caps.fondo_fijo;
   $('#ue-cap-tarjeta').checked = caps.tarjeta;
-  const t=$('#ue-toggle'); t.textContent = u.activo ? 'Desactivar' : 'Activar';
-  t.classList.toggle('no', !!u.activo); t.classList.toggle('ok', !u.activo);
-  t.dataset.activo = u.activo ? '0' : '1';
   $('#usr-edit-bg').classList.remove('hidden');
 }
 function cerrarEditUsuario(){ $('#usr-edit-bg').classList.add('hidden'); usrEditId=null; }
@@ -2439,62 +2366,18 @@ $('#usr-edit-bg').addEventListener('click', e=>{ if(e.target.id==='usr-edit-bg')
 
 $('#ue-save').addEventListener('click', async ()=>{
   if(!usrEditId) return;
-  const nombre=$('#ue-nombre').value.trim(), usuario=$('#ue-usuario').value.trim(), password=$('#ue-password').value;
   const caps = {
     rinde_locales:    $('#ue-cap-locales').checked ? 1 : 0,
     rinde_fondo_fijo: $('#ue-cap-fondo').checked   ? 1 : 0,
     rinde_tarjeta:    $('#ue-cap-tarjeta').checked ? 1 : 0,
   };
-  if(!nombre || !usuario){ toast('Completá nombre y usuario'); return; }
   if(!caps.rinde_locales && !caps.rinde_fondo_fijo && !caps.rinde_tarjeta){ toast('Marcá al menos una forma de rendición'); return; }
-  if(password && password.trim().length<4){ toast('La contraseña debe tener al menos 4 caracteres'); return; }
   // 'modo_rendicion' se manda derivado para no romper backends que todavía lo esperan.
   const modo = caps.rinde_locales ? 'locales' : (caps.rinde_fondo_fijo ? 'fondo_fijo' : 'locales');
-  const body = {nombre, usuario, modo_rendicion:modo, ...caps};
-  if(password.trim()) body.password = password.trim();
   const btn=$('#ue-save'); btn.disabled=true;
   try{
-    await api('/api/admin/usuarios/'+usrEditId, {method:'PATCH', body});
-    toast('Usuario actualizado'); cerrarEditUsuario(); loadUsuarios();
-  }catch(ex){ toast('Error: '+ex.message); }
-  finally{ btn.disabled=false; }
-});
-$('#ue-toggle').addEventListener('click', async ()=>{
-  if(!usrEditId) return;
-  const activo = $('#ue-toggle').dataset.activo==='1';
-  try{
-    await api('/api/admin/usuarios/'+usrEditId, {method:'PATCH', body:{activo}});
-    toast('Usuario actualizado'); cerrarEditUsuario(); loadUsuarios();
-  }catch(ex){ toast(ex.message||'Error'); }
-});
-$('#ue-borrar').addEventListener('click', async ()=>{
-  if(!usrEditId) return;
-  const nombre=$('#ue-nombre').value.trim();
-  if(!confirm(`¿Borrar a ${nombre||'este usuario'}? No se puede deshacer.`)) return;
-  try{
-    await api('/api/admin/usuarios/'+usrEditId, {method:'DELETE'});
-    toast('Usuario borrado'); cerrarEditUsuario(); loadUsuarios();
-  }catch(ex){ toast(ex.message||'Error'); }
-});
-
-$('#nu-crear').addEventListener('click', async ()=>{
-  const nombre=$('#nu-nombre').value.trim(), usuario=$('#nu-usuario').value.trim(),
-        password=$('#nu-password').value.trim();   // sin espacios en las puntas, igual que al editar
-  const caps = {
-    rinde_locales:    $('#nu-cap-locales').checked ? 1 : 0,
-    rinde_fondo_fijo: $('#nu-cap-fondo').checked   ? 1 : 0,
-    rinde_tarjeta:    $('#nu-cap-tarjeta').checked ? 1 : 0,
-  };
-  if(!nombre||!usuario||!password){ toast('Completá nombre, usuario y contraseña'); return; }
-  if(password.length<4){ toast('La contraseña debe tener al menos 4 caracteres'); return; }
-  if(!caps.rinde_locales && !caps.rinde_fondo_fijo && !caps.rinde_tarjeta){ toast('Marcá al menos una forma de rendición'); return; }
-  const modo = caps.rinde_locales ? 'locales' : (caps.rinde_fondo_fijo ? 'fondo_fijo' : 'locales');
-  const btn=$('#nu-crear'); btn.disabled=true;
-  try{
-    await api('/api/admin/usuarios',{method:'POST',body:{nombre,usuario,password,rol:'supervisor',modo_rendicion:modo,...caps}});
-    $('#nu-nombre').value=''; $('#nu-usuario').value=''; $('#nu-password').value='';
-    resetAltaUsuario();
-    toast('Supervisor agregado'); loadUsuarios();
+    await api('/api/admin/usuarios/'+usrEditId, {method:'PATCH', body:{modo_rendicion:modo, ...caps}});
+    toast('Guardado'); cerrarEditUsuario(); loadUsuarios();
   }catch(ex){ toast('Error: '+ex.message); }
   finally{ btn.disabled=false; }
 });
@@ -2695,7 +2578,6 @@ function esc(s){ return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&l
    BOOT
    ======================================================================= */
 (async () => {
-  if (!LOGIN_VIEJO) { const d = document.getElementById('login-viejo'); if (d) d.hidden = true; }
   if (await accesoDesdePortal() === 'redirigiendo') return;
   if(session?.token){ enterApp(); } else { colorBarra(COLOR_APP); }
 })();
