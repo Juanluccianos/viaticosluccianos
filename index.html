@@ -2055,15 +2055,28 @@ function renderAdminNav(){
     renderStats(); renderAdmin();
   });
 }
+// Pantalla rápida: muestra al instante lo último que se vio de este período y se actualiza sola de fondo
+function vClave(p){ return 'rapida:'+(session?.user?.id||'')+':'+p; }
+function vLeer(p){ try{ return JSON.parse(localStorage.getItem(vClave(p))||'null'); }catch(e){ return null; } }
+function vGuardar(p,d){ try{ localStorage.setItem(vClave(p), JSON.stringify({at:Date.now(), data:d})); }catch(e){ /* sin lugar */ } }
+function pintarAdmin(){
+  poblarFiltroLocales();
+  renderAdminNav();
+  renderStats(); renderAdmin();
+  if (!$('#adm-inicio').classList.contains('hidden')) renderInicio();
+}
 async function loadAdmin(){
-  $('#adm-panel').innerHTML='<div class="center-load"><div class="spin"></div>Cargando cierre…</div>';
+  const ruta='/api/admin/gastos?periodo='+$('#adm-periodo').value;
+  const guardado=vLeer(ruta);
+  if(guardado){ admData=guardado.data; pintarAdmin(); }
+  else $('#adm-panel').innerHTML='<div class="center-load"><div class="spin"></div>Cargando cierre…</div>';
   try{
-    admData = await api('/api/admin/gastos?periodo='+$('#adm-periodo').value);
-    poblarFiltroLocales();
-    renderAdminNav();
-    renderStats(); renderAdmin();
-    if (!$('#adm-inicio').classList.contains('hidden')) renderInicio();
-  }catch(ex){ $('#adm-panel').innerHTML=`<div class="empty"><div class="big">${icon('alert',40)}</div><p>${ex.message}</p></div>`; }
+    const nuevo = await api(ruta);
+    vGuardar(ruta, nuevo);
+    if(!guardado || JSON.stringify(nuevo)!==JSON.stringify(guardado.data)){ admData=nuevo; pintarAdmin(); }
+  }catch(ex){
+    if(guardado) return;   /* sin conexión: queda lo último que se vio */
+    $('#adm-panel').innerHTML=`<div class="empty"><div class="big">${icon('alert',40)}</div><p>${ex.message}</p></div>`; }
 }
 /* Llena el desplegable de locales con los que aparecen en el período, conservando la selección. */
 function poblarFiltroLocales(){
@@ -2599,12 +2612,14 @@ function mostrarConfig(on){
   if (on) cargarSalud($('#adm-config-cont'));
 }
 async function cargarSalud(cont){
-  cont.innerHTML='<p class="review-note">Cargando…</p>';
+  const pintar = s => { const e = s.envios_efectivo||{}; cont.innerHTML = htmlSaludGemini(s.gemini, [['Sin enviar a Facturas efectivo', String(e.pendientes||0)], ['Con error de envío', String(e.con_error||0)]]); };
+  const guardado = vLeer('/api/admin/salud');
+  if (guardado) pintar(guardado.data); else cont.innerHTML='<p class="review-note">Cargando…</p>';
   try{
     const s = await api('/api/admin/salud');
-    const e = s.envios_efectivo||{};
-    cont.innerHTML = htmlSaludGemini(s.gemini, [['Sin enviar a Facturas efectivo', String(e.pendientes||0)], ['Con error de envío', String(e.con_error||0)]]);
-  }catch(ex){ cont.innerHTML='<p class="review-note">No se pudo consultar: '+esc(ex.message)+'</p>'; }
+    vGuardar('/api/admin/salud', s);
+    pintar(s);
+  }catch(ex){ if(!guardado) cont.innerHTML='<p class="review-note">No se pudo consultar: '+esc(ex.message)+'</p>'; }
 }
 async function openSalud(){
   $('#salud-bg').classList.remove('hidden');
