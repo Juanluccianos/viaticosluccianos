@@ -540,7 +540,7 @@ th.col-shares{text-align:center}
     padding:20px 14px 12px;background:var(--side);border-right:1px solid var(--line)}
   body.es-admin #adm-view{margin-left:248px;max-width:none;padding:0 0 60px}
   body.es-admin #adm-view .adm-shell{max-width:1320px;margin:0 auto;padding:24px 32px 0}
-  body.es-admin #adm-vista, body.es-admin #adm-usuarios, body.es-admin #adm-locales{display:none}
+  body.es-admin #adm-vista, body.es-admin #adm-usuarios, body.es-admin #adm-locales, body.es-admin #adm-salud{display:none}
   body.es-admin .adm-nav{display:none}
   body.es-admin .adm-shell{display:block}
   body.es-admin .stat .v{font-family:var(--font-d);font-size:26px;font-weight:800;letter-spacing:-.4px;white-space:nowrap}
@@ -615,6 +615,7 @@ th.col-shares{text-align:center}
       <div class="grp-t">Datos</div>
       <button type="button" data-side="usuarios"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M15.5 3.13a4 4 0 0 1 0 7.75"/></svg>Supervisores</button>
       <button type="button" data-side="locales"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 8.5V21h14V8.5"/><path d="M10 21v-6h4v6"/></svg>Locales</button>
+      <button type="button" data-side="config"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Configuración</button>
     </nav>
     <div class="v-me">
       <span class="av" id="v-av">–</span>
@@ -696,6 +697,14 @@ th.col-shares{text-align:center}
           <button class="mini" id="adm-limpiar">Limpiar</button>
         </div>
         <div class="panel" id="adm-panel"></div>
+        <!-- Configuración (barra lateral, en la compu): estado y gasto de la lectura automática, igual que en Facturas y Efectivo -->
+        <section class="hidden" id="adm-config">
+          <div class="panel" style="padding:22px 24px">
+            <h2 style="font:700 17px var(--font-d);margin:0 0 4px">Lectura automática</h2>
+            <p style="margin:0 0 16px;font-size:13.5px;color:var(--ink-soft)">Cuánto se gasta en la lectura paga, qué modelos se están usando y los últimos errores. También los viáticos que todavía no llegaron a Facturas efectivo.</p>
+            <div id="adm-config-cont"></div>
+          </div>
+        </section>
       </div>
     </div>
   </main>
@@ -874,7 +883,7 @@ th.col-shares{text-align:center}
   <div class="sheet" style="max-width:780px">
     <div class="sheet-grab"></div>
     <h2>Lectura automática</h2>
-    <p class="review-note">Qué modelos de Gemini se están usando, cuáles están en pausa, la cuota usada hoy y los últimos errores. También los viáticos que todavía no llegaron a Facturas efectivo.</p>
+    <p class="review-note">Cuánto se gasta en la lectura paga, qué modelos se están usando y los últimos errores. También los viáticos que todavía no llegaron a Facturas efectivo.</p>
     <div id="salud-cont"></div>
   </div>
 </div>
@@ -1107,14 +1116,17 @@ function marcoAdmin(u){
   const nom = u.nombre || '';
   $('#v-av').textContent = nom.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0].toUpperCase()).join('') || '–';
   $('#v-nombre').textContent = nom;
-  const titulos = { detalle: 'Comprobantes', resumen: 'Cierre por supervisor' };
+  const titulos = { detalle: 'Comprobantes', resumen: 'Cierre por supervisor', config: 'Configuración' };
   document.querySelectorAll('#v-side [data-side]').forEach(b => b.onclick = () => {
     const k = b.dataset.side;
     if (k === 'usuarios') return $('#adm-usuarios').click();
     if (k === 'locales') return $('#adm-locales').click();
-    const seg = document.querySelector(`#adm-vista button[data-v="${k}"]`);
-    if (seg) seg.click();
-    document.querySelectorAll('#v-side [data-side="detalle"],#v-side [data-side="resumen"]').forEach(x => x.classList.toggle('activo', x === b));
+    mostrarConfig(k === 'config');
+    if (k !== 'config') {
+      const seg = document.querySelector(`#adm-vista button[data-v="${k}"]`);
+      if (seg) seg.click();
+    }
+    document.querySelectorAll('#v-side [data-side="detalle"],#v-side [data-side="resumen"],#v-side [data-side="config"]').forEach(x => x.classList.toggle('activo', x === b));
     $('#v-titulo').textContent = titulos[k] || 'Viáticos';
   });
 }
@@ -2471,14 +2483,24 @@ function htmlSaludGemini(g, extras = []) {
       </tbody></table></div>` : '<p style="margin:6px 0 0;opacity:.7">Sin errores registrados.</p>'}</div>`;
 }
 
-async function openSalud(){
-  $('#salud-cont').innerHTML='<p class="review-note">Cargando…</p>';
-  $('#salud-bg').classList.remove('hidden');
+/* Configuración (compu): reemplaza la lista de comprobantes por el estado de la lectura automática */
+function mostrarConfig(on){
+  ['#adm-stats','#adm-panel'].forEach(sel => $(sel).classList.toggle('hidden', on));
+  document.querySelectorAll('#adm-view .adm-main > .toolbar').forEach(t => t.classList.toggle('hidden', on));
+  $('#adm-config').classList.toggle('hidden', !on);
+  if (on) cargarSalud($('#adm-config-cont'));
+}
+async function cargarSalud(cont){
+  cont.innerHTML='<p class="review-note">Cargando…</p>';
   try{
     const s = await api('/api/admin/salud');
     const e = s.envios_efectivo||{};
-    $('#salud-cont').innerHTML = htmlSaludGemini(s.gemini, [['Sin enviar a Facturas efectivo', String(e.pendientes||0)], ['Con error de envío', String(e.con_error||0)]]);
-  }catch(ex){ $('#salud-cont').innerHTML='<p class="review-note">No se pudo consultar: '+esc(ex.message)+'</p>'; }
+    cont.innerHTML = htmlSaludGemini(s.gemini, [['Sin enviar a Facturas efectivo', String(e.pendientes||0)], ['Con error de envío', String(e.con_error||0)]]);
+  }catch(ex){ cont.innerHTML='<p class="review-note">No se pudo consultar: '+esc(ex.message)+'</p>'; }
+}
+async function openSalud(){
+  $('#salud-bg').classList.remove('hidden');
+  await cargarSalud($('#salud-cont'));
 }
 $('#salud-bg').addEventListener('click', e=>{ if(e.target.id==='salud-bg') $('#salud-bg').classList.add('hidden'); });
 async function openLocales(){
