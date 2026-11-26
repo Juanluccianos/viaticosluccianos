@@ -572,6 +572,62 @@ th.col-shares{text-align:center}
 #adm-sup-sel{display:none}
 @media (min-width:1000px){ body.es-admin #adm-sup-sel{display:block} }
 @media (min-width:1000px){ body.es-admin .v-top{display:flex} }
+
+/* ============ Viáticos con el mismo kit que las otras herramientas: Inicio, encabezados, filtros y montos ============ */
+.money{font-family:var(--font-d);font-weight:700;letter-spacing:-.01em}
+td.num,.gasto .g-amt .v,.list-head .count{font-family:var(--font-d);font-weight:700;letter-spacing:-.01em}
+.pill-shares.si{background:#e4f1e8;border-color:#e4f1e8;color:#1a6a3c}
+.pill-shares.no{background:#fbefdc;border-color:#fbefdc;color:#8a4b05}
+.total-hero .amt{font-family:var(--font-d);font-weight:800;letter-spacing:-.02em}
+.stat .v{font-family:var(--font-d);font-weight:800}
+.v-enc,#adm-inicio{display:none}
+@media (min-width:1000px){
+  body.es-admin .v-enc{display:block;margin:4px 0 18px}
+  body.es-admin .v-enc.hidden{display:none}
+  body.es-admin .v-enc h1{font:800 26px/1.15 var(--font-d);letter-spacing:-.02em;color:var(--ink);margin:0}
+  body.es-admin .v-enc p{margin:4px 0 0;color:var(--ink-soft);font-size:14.5px}
+  body.es-admin #adm-inicio{display:block}
+  body.es-admin #adm-inicio.hidden{display:none}
+  body.es-admin.adm-en-inicio #adm-stats, body.es-admin.adm-en-inicio .adm-main > .toolbar, body.es-admin.adm-en-inicio #adm-panel{display:none}
+  body.es-admin .toolbar{gap:8px;align-items:center}
+  body.es-admin .toolbar .sel{height:38px;padding:0 12px;border:1px solid var(--line-strong);border-radius:10px;font-size:14px;background:var(--crema);color:var(--ink)}
+  body.es-admin .toolbar .mini{height:38px;border-radius:10px;padding:0 14px;font-size:13.5px}
+  .v-buscar{display:flex;align-items:center;gap:8px;height:38px;min-width:300px;padding:0 10px 0 12px;border:1px solid var(--line);border-radius:12px;background:var(--crema);color:var(--ink-soft);font-size:14px}
+  .v-buscar svg{width:16px;height:16px}
+  .v-buscar span{flex:1;text-align:left}
+  .v-buscar kbd{font:500 11px var(--font-m);padding:2px 6px;border-radius:5px;border:1px solid var(--line-strong);color:var(--ink-soft)}
+  .v-refrescar{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;color:var(--ink-soft)}
+  .v-refrescar:hover{background:var(--paper-2);color:var(--ink)}
+  .v-refrescar svg{width:18px;height:18px}
+  .ini-hola h1{font:800 30px/1.1 var(--font-d);letter-spacing:-.025em;color:var(--ink);margin:4px 0 0}
+  .ini-hola p{margin:6px 0 18px;color:var(--ink-soft);font-size:15px}
+  .ini-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+  .ini-kpi{background:var(--crema);border-radius:16px;padding:16px 18px;box-shadow:0 0 0 1px var(--line),var(--shadow);display:flex;flex-direction:column;gap:4px}
+  .ini-kpi span{font-size:11.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-soft)}
+  .ini-kpi b{font:800 26px/1.15 var(--font-d);letter-spacing:-.02em;color:var(--ink)}
+  .ini-kpi b em{font-style:normal;font-size:16px;color:var(--ink-soft);font-weight:600}
+  .ini-kpi b.aviso{color:#a35a07}
+  .ini-kpi small{font-size:13px;color:var(--ink-soft)}
+  .ini-kpi.destacado{background:#A8C686;box-shadow:none}
+  .ini-kpi.destacado span,.ini-kpi.destacado small{color:#2f4a17}
+  .ini-kpi.destacado b{color:#1d2f0d}
+  .ini-cols{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:14px}
+  .ini-panel{padding:18px 20px}
+  .ini-panel h2{font:700 16px var(--font-d);margin:0 0 12px;color:var(--ink)}
+  .ini-sup{padding:9px 0;border-top:1px solid var(--line)}
+  .ini-sup:first-of-type{border-top:0}
+  .ini-sup-t{display:flex;justify-content:space-between;gap:10px;font-size:14px}
+  .ini-sup-t span{color:var(--ink-soft);font-size:13px}
+  .ini-barra{height:6px;border-radius:999px;background:var(--paper-2);margin-top:7px;overflow:hidden}
+  .ini-barra i{display:block;height:100%;border-radius:999px;background:var(--accent)}
+  .ini-falta{margin:12px 0 0;font-size:13px;color:var(--ink-soft)}
+  .ini-vacio{color:var(--ink-soft);font-size:14px}
+  .ini-ult{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:10px;text-align:left}
+  .ini-ult:hover{background:var(--paper-2)}
+  .ini-ult b{display:block;font-size:14px;font-weight:600}
+  .ini-ult small{font-size:12.5px;color:var(--ink-soft)}
+  .ini-ver{margin-top:10px}
+}
 </style>
 </head>
 <body>
@@ -610,7 +666,8 @@ th.col-shares{text-align:center}
     <a class="v-brand" href="#"><img src="logo-negro.png" alt="Lucciano's"><span>Viáticos</span></a>
     <nav class="v-nav">
       <div class="grp-t">Trabajo</div>
-      <button type="button" class="activo" data-side="detalle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Comprobantes</button>
+      <button type="button" class="activo" data-side="inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"/></svg>Inicio</button>
+      <button type="button" data-side="detalle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Comprobantes</button>
       <button type="button" data-side="resumen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6"/><path d="M17 11l2 2 4-4"/></svg>Cierre por supervisor</button>
       <div class="grp-t">Datos</div>
       <button type="button" data-side="usuarios"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M15.5 3.13a4 4 0 0 1 0 7.75"/></svg>Supervisores</button>
@@ -670,10 +727,12 @@ th.col-shares{text-align:center}
 
   <!-- ---- ADMIN ---- -->
   <main id="adm-view" class="hidden">
-    <header class="v-top"><h1 id="v-titulo">Comprobantes</h1><div class="grow"></div><span class="tb-sub" id="v-sub"></span></header>
+    <header class="v-top"><h1 id="v-titulo">Comprobantes</h1><div class="grow"></div><span class="tb-sub" id="v-sub"></span><button type="button" class="v-buscar" id="v-buscar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Buscar comprobante o CUIT…</span><kbd>Ctrl K</kbd></button><button type="button" class="v-refrescar" id="v-refrescar" title="Actualizar" aria-label="Actualizar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/></svg></button></header>
     <div class="adm-shell">
       <aside class="adm-nav" id="adm-nav"></aside>
       <div class="adm-main">
+        <div class="v-enc" id="adm-enc"><h1 id="adm-enc-t">Comprobantes</h1><p id="adm-enc-p">Todo lo que rindieron los supervisores en el período.</p></div>
+        <section class="hidden" id="adm-inicio"></section>
         <div class="adm-grid" id="adm-stats"></div>
         <div class="toolbar">
           <select class="sel" id="adm-periodo"></select>
@@ -1112,21 +1171,65 @@ async function chequearSesion(){
   }
 }
 /* Marco común: la barra lateral maneja los mismos botones de siempre (vista, Usuarios, Locales) */
+// Inicio del panel (en la compu): saludo, tarjetas y avance por supervisor, como en las otras herramientas
+function mostrarInicio(on){
+  document.body.classList.toggle('adm-en-inicio', !!on);
+  $('#adm-inicio').classList.toggle('hidden', !on);
+  if (on) renderInicio();
+}
+function renderInicio(){
+  const cont = $('#adm-inicio'); if (!cont || !admData) return;
+  const g = admData.gastos || [], total = g.reduce((a, x) => a + (Number(x.total) || 0), 0);
+  const sups = ADMIN_USUARIOS.filter(u => u.activo !== 0);
+  const porSup = {}; g.forEach(x => { const k = x.supervisor || '—'; (porSup[k] = porSup[k] || { n: 0, t: 0 }); porSup[k].n++; porSup[k].t += Number(x.total) || 0; });
+  const rindieron = Object.keys(porSup).length;
+  const sinShares = g.filter(x => { const i = sharesInfo(x); return i && (i.cls === 'no' || i.cls === 'rech'); }).length;
+  const h = new Date().getHours(), saludo = h < 13 ? 'Buen día' : h < 20 ? 'Buenas tardes' : 'Buenas noches';
+  const nombre = String(session?.user?.nombre || '').split(' ')[0];
+  const per = $('#adm-periodo'), perTxt = per?.selectedOptions?.[0]?.textContent || '';
+  const max = Math.max(1, ...Object.values(porSup).map(v => v.t));
+  const filas = Object.entries(porSup).sort((a, b) => b[1].t - a[1].t).map(([n, v]) => `
+    <div class="ini-sup"><div class="ini-sup-t"><b>${esc(n)}</b><span>${v.n} comprobante${v.n === 1 ? '' : 's'} · <span class="money">${fmtMoney(v.t)}</span></span></div>
+      <div class="ini-barra"><i style="width:${Math.max(3, Math.round(v.t / max * 100))}%"></i></div></div>`).join('');
+  const faltan = sups.filter(u => !porSup[u.nombre]).map(u => esc(u.nombre));
+  const ult = [...g].sort((a, b) => String(b.creado || b.fecha_rendicion || '').localeCompare(String(a.creado || a.fecha_rendicion || ''))).slice(0, 6);
+  cont.innerHTML = `
+    <div class="ini-hola"><h1>${saludo}${nombre ? ', ' + esc(nombre) : ''}</h1><p>Viáticos de ${esc(perTxt.toLowerCase())}: lo que rindieron los supervisores y lo que falta pasar a Shares.</p></div>
+    <div class="ini-kpis">
+      <div class="ini-kpi destacado"><span>Total del período</span><b class="money">${fmtMoney(total)}</b><small>${g.length} comprobante${g.length === 1 ? '' : 's'}</small></div>
+      <div class="ini-kpi"><span>Supervisores que rindieron</span><b>${rindieron}<em> de ${sups.length}</em></b><small>${sups.length - rindieron > 0 ? (sups.length - rindieron) + ' sin comprobantes' : 'todos rindieron'}</small></div>
+      <div class="ini-kpi"><span>Sin pasar a Shares</span><b class="${sinShares ? 'aviso' : ''}">${sinShares}</b><small>todavía no cargados en Shares</small></div>
+      <div class="ini-kpi"><span>Locales</span><b>${new Set(g.map(x => x.local).filter(Boolean)).size}</b><small>con gastos en el período</small></div>
+    </div>
+    <div class="ini-cols">
+      <div class="panel ini-panel"><h2>Avance por supervisor</h2>${filas || '<p class="ini-vacio">Todavía no hay comprobantes en este período.</p>'}
+        ${faltan.length ? `<p class="ini-falta"><b>Sin comprobantes:</b> ${faltan.join(', ')}</p>` : ''}</div>
+      <div class="panel ini-panel"><h2>Últimos cargados</h2>
+        ${ult.map((x, i) => `<button type="button" class="ini-ult" data-i="${i}"><span><b>${esc(x.razon_social || 'Comprobante')}</b><small>${esc(x.supervisor || '')} · ${esc(x.local || '')}</small></span><span class="money">${fmtMoney(x.total)}</span></button>`).join('') || '<p class="ini-vacio">Nada por ahora.</p>'}
+        <button type="button" class="mini ini-ver" id="ini-ver-todo">Ver todos los comprobantes</button></div>
+    </div>`;
+  cont.querySelectorAll('.ini-ult').forEach(b => b.onclick = () => { if (typeof abrirDetalleAdmin === 'function') abrirDetalleAdmin(ult[+b.dataset.i]); });
+  $('#ini-ver-todo').onclick = () => document.querySelector('#v-side [data-side="detalle"]').click();
+}
 function marcoAdmin(u){
   const nom = u.nombre || '';
   $('#v-av').textContent = nom.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0].toUpperCase()).join('') || '–';
   $('#v-nombre').textContent = nom;
-  const titulos = { detalle: 'Comprobantes', resumen: 'Cierre por supervisor', config: 'Configuración' };
+  const titulos = { inicio: 'Inicio', detalle: 'Comprobantes', resumen: 'Cierre por supervisor', config: 'Configuración' };
+  const bajadas = { detalle: 'Todo lo que rindieron los supervisores en el período.', resumen: 'Cuánto rindió cada supervisor en el período, listo para el cierre.', config: 'Estado de la lectura automática de comprobantes.' };
   document.querySelectorAll('#v-side [data-side]').forEach(b => b.onclick = () => {
     const k = b.dataset.side;
     if (k === 'usuarios') return $('#adm-usuarios').click();
     if (k === 'locales') return $('#adm-locales').click();
+    mostrarInicio(k === 'inicio');
     mostrarConfig(k === 'config');
-    if (k !== 'config') {
+    $('#adm-enc').classList.toggle('hidden', k === 'inicio');
+    if (bajadas[k]) { $('#adm-enc-t').textContent = titulos[k]; $('#adm-enc-p').textContent = bajadas[k]; }
+    if (k !== 'config' && k !== 'inicio') {
       const seg = document.querySelector(`#adm-vista button[data-v="${k}"]`);
       if (seg) seg.click();
     }
-    document.querySelectorAll('#v-side [data-side="detalle"],#v-side [data-side="resumen"],#v-side [data-side="config"]').forEach(x => x.classList.toggle('activo', x === b));
+    document.querySelectorAll('#v-side [data-side="inicio"],#v-side [data-side="detalle"],#v-side [data-side="resumen"],#v-side [data-side="config"]').forEach(x => x.classList.toggle('activo', x === b));
     $('#v-titulo').textContent = titulos[k] || 'Viáticos';
   });
 }
@@ -1141,7 +1244,7 @@ function enterApp(){
   $('#tb-username').textContent = u.nombre || '';
   $('#tb-sub').textContent = u.rol==='admin' ? 'Panel de administración' : capsSummary(u);
   document.body.classList.toggle('es-admin', u.rol==='admin');
-  if(u.rol==='admin') marcoAdmin(u);
+  if(u.rol==='admin'){ marcoAdmin(u); if (matchMedia('(min-width:1000px)').matches) setTimeout(() => document.querySelector('#v-side [data-side="inicio"]')?.click(), 0); }
   loadLocales().then(()=>{
     if(u.rol==='admin'){ initAdmin(); }
     else { initSupervisor(); }
@@ -1893,6 +1996,10 @@ function initAdmin(){
   });
   cargarUsuariosParaNav();
   loadAdmin();
+  const irABuscar = () => { document.querySelector('#v-side [data-side="detalle"]')?.click(); setTimeout(() => { $('#adm-buscar').focus(); $('#adm-buscar').select(); }, 0); };
+  $('#v-buscar').onclick = irABuscar;
+  $('#v-refrescar').onclick = loadAdmin;
+  document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && document.body.classList.contains('es-admin')) { e.preventDefault(); irABuscar(); } });
 
   // Refresco automático: los gastos que cargan los supervisores aparecen
   // solos, sin que el admin tenga que recargar la página.
@@ -1955,6 +2062,7 @@ async function loadAdmin(){
     poblarFiltroLocales();
     renderAdminNav();
     renderStats(); renderAdmin();
+    if (!$('#adm-inicio').classList.contains('hidden')) renderInicio();
   }catch(ex){ $('#adm-panel').innerHTML=`<div class="empty"><div class="big">${icon('alert',40)}</div><p>${ex.message}</p></div>`; }
 }
 /* Llena el desplegable de locales con los que aparecen en el período, conservando la selección. */
