@@ -1100,6 +1100,8 @@ async function api(path, opts={}){
     headers['Content-Type']='application/json';
     opts.body = JSON.stringify(opts.body);
   }
+  // se cambió algo (cargar, editar, borrar, pasar a Efectivo…): lo guardado de las pantallas rápidas ya no vale
+  if(opts.method && String(opts.method).toUpperCase()!=='GET'){ try{ Object.keys(localStorage).filter(k=>k.startsWith('rapida:')).forEach(k=>localStorage.removeItem(k)); }catch(e){} }
   let res;
   try{ res = await fetch(API_BASE+path, {...opts, headers}); }
   catch{ const e=new Error('Sin conexión. Revisá internet y probá de nuevo.'); e.status=0; throw e; }
@@ -2823,7 +2825,7 @@ if('serviceWorker' in navigator){
 /* ---- Aviso de versión nueva (igual en todas las herramientas): si mientras la app está abierta se publica una
    versión nueva, aparece abajo "Hay una versión nueva" con el botón Actualizar. Se revisa cada 5 minutos y al volver a la pestaña. ---- */
 (function avisoVersionNueva() {
-  const APP = 'Viáticos', MODO = 'sw', BUILD = 'viaticos-v50';   // BUILD = nombre de la versión de esta copia (el mismo que CACHE en sw.js)
+  const APP = 'Viáticos', MODO = 'sw', BUILD = 'viaticos-v51';   // BUILD = nombre de la versión de esta copia (el mismo que CACHE en sw.js)
   let mostrado = false, base = null;
   async function hayNueva() {
     if (MODO === 'v') {
