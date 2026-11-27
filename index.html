@@ -630,6 +630,8 @@ td.num,.gasto .g-amt .v,.list-head .count{font-family:var(--font-d);font-weight:
 }
 
 #update-banner{display:none!important}   /* reemplazado por el aviso común de versión nueva */
+
+.redibujo-suave *, .redibujo-suave *::before, .redibujo-suave *::after{animation:none!important;transition:none!important}
 </style>
 </head>
 <body>
@@ -2077,7 +2079,11 @@ async function loadAdmin(){
   try{
     const nuevo = await api(ruta);
     vGuardar(ruta, nuevo);
-    if(!guardado || JSON.stringify(nuevo)!==JSON.stringify(guardado.data)){ admData=nuevo; pintarAdmin(); }
+    if(!guardado || JSON.stringify(nuevo)!==JSON.stringify(guardado.data)){
+      admData=nuevo;
+      if(!guardado) pintarAdmin();
+      else { const y=window.scrollY; document.documentElement.classList.add('redibujo-suave'); pintarAdmin(); window.scrollTo(0,y); requestAnimationFrame(()=>requestAnimationFrame(()=>document.documentElement.classList.remove('redibujo-suave'))); }
+    }
   }catch(ex){
     if(guardado) return;   /* sin conexión: queda lo último que se vio */
     $('#adm-panel').innerHTML=`<div class="empty"><div class="big">${icon('alert',40)}</div><p>${ex.message}</p></div>`; }
@@ -2825,7 +2831,7 @@ if('serviceWorker' in navigator){
 /* ---- Aviso de versión nueva (igual en todas las herramientas): si mientras la app está abierta se publica una
    versión nueva, aparece abajo "Hay una versión nueva" con el botón Actualizar. Se revisa cada 5 minutos y al volver a la pestaña. ---- */
 (function avisoVersionNueva() {
-  const APP = 'Viáticos', MODO = 'sw', BUILD = 'viaticos-v51';   // BUILD = nombre de la versión de esta copia (el mismo que CACHE en sw.js)
+  const APP = 'Viáticos', MODO = 'sw', BUILD = 'viaticos-v52';   // BUILD = nombre de la versión de esta copia (el mismo que CACHE en sw.js)
   let mostrado = false, base = null;
   async function hayNueva() {
     if (MODO === 'v') {
